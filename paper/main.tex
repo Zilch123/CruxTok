@@ -145,7 +145,7 @@ T1 s2 vs T0-cap, matched & \pos{0.772} [0.753, 0.792] & n/s & n/s & -- \\
 
 Figure~\ref{fig:embed} and Table~\ref{tab:decode} show the main positive result. With four codes, T1 reconstructions are about 0.1 closer to the original in embedding space than either baseline, on both seeds. The judge agrees: T1's level-1 win rate is 0.70 against T0-cap, and 0.74 and 0.77 against the matched baseline. Counting outright preferences only, the judge picks T1 in 52\% of items against T0-cap (12\% for T0-cap), and in 57\% and 63\% against the matched baseline (9\% and 8\%); the rest are ties or order disagreements. The matched baseline is the weakest of the three at level~1, so the gain is not explained by parameter count. By $k{=}2$ the runs are within about 0.01 of each other.
 
-Table~\ref{tab:examples} shows reconstructions drawn at random. At level~1, T1 usually preserves the type of event (an injured footballer, a violent death) while getting names, places and numbers wrong; the matched baseline's level~1 is mostly unrelated text, except on formulaic sentences.
+Table~\ref{tab:examples} shows reconstructions drawn at random. At level~1, T1 often preserves the type of event (an injured footballer, a crash at a racing championship) while getting names, places and numbers wrong, though on the boxing item it keeps little; the matched baseline's level~1 is mostly unrelated text, except on formulaic sentences such as the murder arrest.
 
 \begin{table}[t]
 \centering
@@ -156,11 +156,11 @@ Original & T1, $k{=}1$ & T0-cap matched, $k{=}1$ \\
 \midrule
 West Ham striker Andy Carroll is facing up to six weeks out of action with a hamstring injury. & Newcastle midfielder Aaron Aaron has has he be surgery the out of the of after ankle injury. & Aales Minister Alex Johnson is preparing to his his. ahead of the. \\
 \addlinespace
-An attack by knife-wielding men at a railway station in Kunming in south-west China has left at least 29 dead, the state news agency Xinhua says. & An 11-year-old who who killed a car crash on a a in in in in,,, been to to a a the,,,, has said. & The defeat by the,.. \\
+Michael Dunlop set the fastest times for the Ulster Grand Prix Superbike and Superstock classes in Thursday's delayed practice sessions at Dundrod. & A lorry driver who crashed been the crash at the World Tour Championships Championships in the the on Saturday the the Grand Grand in in in London. & When's of has a a to record for the second in a the of the- his, in England, the too on the years. \\
 \addlinespace
 A man has been arrested on suspicion of murder after a woman was found dead at a house in Worcestershire. & A man has been arrested on suspicion of murder after a woman woman was a in in in in indearkshire. & A man has been arrested on suspicion of murder after a woman- a murder at a house in arexhamhire. \\
 \addlinespace
-Indian police say that a 30-year-old American woman has been gang-raped in the northern state of Himachal Pradesh. & Turkish police have arrested a a a of a a in bomb have been killed in the the's of of of President B Bi. & Northern Ireland, the the to to a a in 10 State in the has a, on the first round of the the National season. \\
+A former Welsh amateur boxing champion said she is turning professional as she does not have confidence in the governing body. & A former former assistant boss has has been been been described as as as of the the the the the election. & A man of David Cameron has said he will to the a\textquotedbl{} of a to hospital in the UK. \\
 \bottomrule
 \end{tabularx}
 \caption{Level-1 reconstructions. Four of six items drawn uniformly at random (seed 0) from the 1{,}000 evaluated; the other two, and $k{=}3$ outputs, are in the repository.}
