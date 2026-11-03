@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# CruxTok
+runs/
+data/
+*.pt
+wandb/
+.env

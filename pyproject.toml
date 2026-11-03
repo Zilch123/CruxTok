@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cruxtok"
+version = "0.1.0"
+description = "Residual VQ text tokenizer with learned-query pooling"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+  "torch>=2.2",
+  "numpy",
+  "omegaconf",
+  "hydra-core",
+  "regex",
+  "transformers>=4.51",
+  "huggingface_hub",
+  "datasets",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+wandb = ["wandb"]
+
+[project.scripts]
+cruxtok-train-tokenizer = "cruxtok.cli.train_tokenizer:main"
+
+[tool.setuptools.packages.find]
+include = ["cruxtok*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: downloads released checkpoints"]
+addopts = "-m 'not slow'"

@@ -1,0 +1,15 @@
+# CruxTok: learned-query pooling on XSum. The reported runs used runtime.precision=bf16, seeds 42 and 2.
+base: ../base/tokenizer.yaml
+run_name: xsum_t1
+data:
+  dataset: xsum
+model:
+  in_vocab_size: 50304
+  text_tokenizer: gpt2
+  context_length: 48
+  pad_id: 50257
+  eos_id: 50256
+  levels: [4, 6, 10, 14, 20, 26, 32, 40, 48]
+  prior_sharpness: 1.0     # chosen on held-out reconstruction in short pilot runs
+  vq:
+    decay: 0.99

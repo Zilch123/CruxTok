@@ -1,0 +1,113 @@
+\begin{thebibliography}{17}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Bengio et~al.(2013)Bengio, L{\'e}onard, and Courville]{bengio2013ste}
+Yoshua Bengio, Nicholas L{\'e}onard, and Aaron Courville.
+\newblock Estimating or propagating gradients through stochastic neurons for
+  conditional computation, 2013.
+
+\bibitem[Cer et~al.(2017)Cer, Diab, Agirre, Lopez-Gazpio, and
+  Specia]{cer2017stsb}
+Daniel Cer, Mona Diab, Eneko Agirre, I{\~n}igo Lopez-Gazpio, and Lucia Specia.
+\newblock {SemEval}-2017 task 1: Semantic textual similarity multilingual and
+  crosslingual focused evaluation.
+\newblock In \emph{Proceedings of SemEval}, 2017.
+
+\bibitem[Dehghani et~al.(2023)]{dehghani2023vit22b}
+Mostafa Dehghani et~al.
+\newblock Scaling vision transformers to 22 billion parameters.
+\newblock In \emph{International Conference on Machine Learning}, 2023.
+
+\bibitem[Henry et~al.(2020)Henry, Dachapally, Pawar, and Chen]{henry2020qknorm}
+Alex Henry, Prudhvi~Raj Dachapally, Shubham Pawar, and Yuxuan Chen.
+\newblock Query-key normalization for transformers.
+\newblock In \emph{Findings of EMNLP}, 2020.
+
+\bibitem[Jaegle et~al.(2021)Jaegle, Gimeno, Brock, Vinyals, Zisserman, and
+  Carreira]{jaegle2021perceiver}
+Andrew Jaegle, Felix Gimeno, Andy Brock, Oriol Vinyals, Andrew Zisserman, and
+  Joao Carreira.
+\newblock Perceiver: General perception with iterative attention.
+\newblock In \emph{International Conference on Machine Learning}, 2021.
+
+\bibitem[Kumbong et~al.(2026)Kumbong, Khare, Mlauzi, Woen, Ding, Buchanan,
+  Arora, Mirhoseini, and R{\'e}]{kumbong2026nextconcept}
+Hermann Kumbong, Ishan~S. Khare, Iddah Mlauzi, Andrew Woen, Charles Ding,
+  E.~Kelly Buchanan, Simran Arora, Azalia Mirhoseini, and Christopher R{\'e}.
+\newblock Next-concept modeling: Fast, parallel coarse-to-fine text generation,
+  2026.
+
+\bibitem[Kusupati et~al.(2022)Kusupati, Bhatt, Rege, Wallingford, Sinha,
+  Ramanujan, Howard-Snyder, Chen, Kakade, Jain, and
+  Farhadi]{kusupati2022matryoshka}
+Aditya Kusupati, Gantavya Bhatt, Aniket Rege, Matthew Wallingford, Aditya
+  Sinha, Vivek Ramanujan, William Howard-Snyder, Kaifeng Chen, Sham Kakade,
+  Prateek Jain, and Ali Farhadi.
+\newblock Matryoshka representation learning.
+\newblock In \emph{Advances in Neural Information Processing Systems}, 2022.
+
+\bibitem[Lee et~al.(2019)Lee, Lee, Kim, Kosiorek, Choi, and Teh]{lee2019set}
+Juho Lee, Yoonho Lee, Jungtaek Kim, Adam Kosiorek, Seungjin Choi, and Yee~Whye
+  Teh.
+\newblock Set transformer: A framework for attention-based
+  permutation-invariant neural networks.
+\newblock In \emph{International Conference on Machine Learning}, 2019.
+
+\bibitem[Li et~al.(2023)Li, Li, Savarese, and Hoi]{li2023blip2}
+Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi.
+\newblock {BLIP-2}: Bootstrapping language-image pre-training with frozen image
+  encoders and large language models.
+\newblock In \emph{International Conference on Machine Learning}, 2023.
+
+\bibitem[Narayan et~al.(2018)Narayan, Cohen, and Lapata]{narayan2018xsum}
+Shashi Narayan, Shay~B. Cohen, and Mirella Lapata.
+\newblock Don't give me the details, just the summary! topic-aware
+  convolutional neural networks for extreme summarization.
+\newblock In \emph{Proceedings of EMNLP}, 2018.
+
+\bibitem[Reimers and Gurevych(2019)]{reimers2019sbert}
+Nils Reimers and Iryna Gurevych.
+\newblock Sentence-{BERT}: Sentence embeddings using siamese {BERT}-networks.
+\newblock In \emph{Proceedings of EMNLP-IJCNLP}, 2019.
+
+\bibitem[Rippel et~al.(2014)Rippel, Gelbart, and Adams]{rippel2014nested}
+Oren Rippel, Michael Gelbart, and Ryan Adams.
+\newblock Learning ordered representations with nested dropout.
+\newblock In \emph{International Conference on Machine Learning}, 2014.
+
+\bibitem[van~den Oord et~al.(2017)van~den Oord, Vinyals, and
+  Kavukcuoglu]{vandenoord2017vqvae}
+Aaron van~den Oord, Oriol Vinyals, and Koray Kavukcuoglu.
+\newblock Neural discrete representation learning.
+\newblock In \emph{Advances in Neural Information Processing Systems}, 2017.
+
+\bibitem[Wortsman et~al.(2024)]{wortsman2024proxies}
+Mitchell Wortsman et~al.
+\newblock Small-scale proxies for large-scale transformer training
+  instabilities.
+\newblock In \emph{International Conference on Learning Representations}, 2024.
+
+\bibitem[Zeghidour et~al.(2021)Zeghidour, Luebs, Omran, Skoglund, and
+  Tagliasacchi]{zeghidour2021soundstream}
+Neil Zeghidour, Alejandro Luebs, Ahmed Omran, Jan Skoglund, and Marco
+  Tagliasacchi.
+\newblock Soundstream: An end-to-end neural audio codec.
+\newblock \emph{IEEE/ACM Transactions on Audio, Speech, and Language
+  Processing}, 2021.
+
+\bibitem[Zhang et~al.(2019)Zhang, Baldridge, and He]{zhang2019paws}
+Yuan Zhang, Jason Baldridge, and Luheng He.
+\newblock {PAWS}: Paraphrase adversaries from word scrambling.
+\newblock In \emph{Proceedings of NAACL}, 2019.
+
+\bibitem[Zheng et~al.(2023)]{zheng2023judge}
+Lianmin Zheng et~al.
+\newblock Judging {LLM}-as-a-judge with {MT-Bench} and chatbot arena.
+\newblock In \emph{Advances in Neural Information Processing Systems, Datasets
+  and Benchmarks Track}, 2023.
+
+\end{thebibliography}

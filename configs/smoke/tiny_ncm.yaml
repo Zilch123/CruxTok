@@ -1,0 +1,6 @@
+# T0-cap's path through the trainer on the same synthetic data.
+base: tiny.yaml
+run_name: smoke_ncm
+model:
+  arch: ncm
+  encoder_blocks: 0

@@ -1,0 +1,15 @@
+{
+ "model": "zai-org/GLM-5.3",
+ "spearman": 0.8966598939178724,
+ "parsed": 1379,
+ "n": 1379,
+ "order_consistency": 0.94,
+ "consistency_answered": 200,
+ "settings": {
+  "chat_template_kwargs": {
+   "enable_thinking": false
+  },
+  "reasoning_effort": "low"
+ },
+ "spent_usd": 0.344
+}

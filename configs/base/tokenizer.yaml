@@ -1,0 +1,58 @@
+run_name: run
+seed: 42
+data:
+  dataset: xsum
+  root: data
+model:
+  arch: cruxtok            # cruxtok | ncm
+  d: 384
+  in_vocab_size: 8192
+  text_tokenizer: bpe      # bpe | gpt2 | bytes
+  context_length: 128
+  pad_id: 1
+  eos_id: 0
+  encoder_blocks: 4
+  decoder_blocks: 2
+  n_heads: 6
+  dropout: 0.1
+  levels: [4, 8, 12, 20, 32, 48, 64, 88, 110, 128]
+  codebook_size: 4096
+  pool_self_attn: false
+  attn_prior: true         # learnable attention prior, initialized to NCM's fixed windows
+  prior_sharpness: 4.0     # 0 starts the learnable prior uniform, as GOAT does
+  qk_norm: true            # RMS-normalize queries and keys in pooling and expansion; without it bf16 training diverges
+  query_init_std: 0.02
+  final_level_identity: true
+  ste: per_level           # per_level | coarse_only
+  m: 3                     # per-level STE span under coarse_only
+  vq:
+    decay: 0.95
+    epsilon: 1.0e-5
+    commitment: 0.25
+    restart_threshold: 0.01  # fraction of uniform usage below which a code restarts
+  nested_dropout:
+    prob: 0.5
+    min_keep: 1
+train:
+  steps: 30000
+  micro_batch: 128
+  grad_accum: 2
+  lr: 5.0e-4
+  lr_floor: 5.0e-5
+  warmup: 1000
+  betas: [0.9, 0.95]
+  weight_decay: 0.01
+  grad_clip: 1.0
+  max_nonfinite_steps: 200   # stop if this many updates in a row have non-finite gradients; 0 disables
+runtime:
+  precision: fp16          # bf16 | fp16 | fp32
+  compile: false
+  ckpt_every: 1000
+  keep_ckpts: 2
+  log_every: 50
+  eval_every: 5000
+  eval_examples: 2000
+  eval_batch_size: 64
+  wandb: false
+  wandb_project: cruxtok
+  output_root: runs

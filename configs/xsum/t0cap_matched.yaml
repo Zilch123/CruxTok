@@ -1,0 +1,6 @@
+# T0-cap with T1's parameter count (73.06M vs 73.23M): a deeper NCM encoder and decoder, so a T1 gain cannot come from size alone.
+base: t0cap.yaml
+run_name: xsum_t0cap_matched
+model:
+  encoder_blocks: 5
+  decoder_blocks: 3

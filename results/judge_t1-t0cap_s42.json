@@ -1,0 +1,41 @@
+{
+ "judge": "zai-org/GLM-5.3",
+ "settings": {
+  "chat_template_kwargs": {
+   "enable_thinking": false
+  },
+  "reasoning_effort": "low"
+ },
+ "spent_usd": 3.026,
+ "results": {
+  "t1:t0cap_s42": {
+   "k=1": {
+    "win_rate": 0.6996996996996997,
+    "lo": 0.6781781781781782,
+    "hi": 0.7222222222222222,
+    "a_wins": 520,
+    "b_wins": 121,
+    "ties": 358,
+    "n_valid": 999
+   },
+   "k=2": {
+    "win_rate": 0.4894472361809045,
+    "lo": 0.4628140703517588,
+    "hi": 0.5155778894472361,
+    "a_wins": 350,
+    "b_wins": 371,
+    "ties": 274,
+    "n_valid": 995
+   },
+   "k=3": {
+    "win_rate": 0.541372351160444,
+    "lo": 0.5151362260343088,
+    "hi": 0.5681130171543896,
+    "a_wins": 407,
+    "b_wins": 325,
+    "ties": 259,
+    "n_valid": 991
+   }
+  }
+ }
+}

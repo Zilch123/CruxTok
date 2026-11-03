@@ -1,0 +1,211 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+
+\newcommand{\pos}[1]{\textbf{#1}}
+
+\title{What Does the First Level of a Residual Text Tokenizer Know?\\[0.3em]
+\large Learned-Query Pooling Puts the Gist in Level 1}
+\author{Timoth Dev A\\Independent researcher\\\texttt{timontunes@gmail.com}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Coarse-to-fine text generators such as Next-Concept Modeling (NCM) rely on a residual vector-quantized tokenizer whose first levels should carry the gist of a sentence. NCM builds each coarse level by pooling fixed windows of positions. We replace this with learned-query pooling (CruxTok, T1) and train on XSum summaries. Learned pooling makes level 1 recover much more of a sentence: against an NCM baseline with the same parameter count, an LLM judge prefers T1's level-1 reconstructions in 74\% and 77\% of comparisons (two seeds), and embedding similarity to the original rises from 0.34 to 0.45. T1 also reconstructs 13--15 points more tokens from the first three levels. The pooling attention moves away from its fixed starting windows and depends on the input. The parameter-matched baseline, which spends its extra parameters on encoder and decoder depth, gives codes whose similarity tracks STS-B better (Spearman 0.28 at level 3, against 0.02--0.03 for T1). Decodable meaning and meaning-organized codes are separate properties, and pooling buys the first but not the second. We also report the stabilizer needed to train learned pooling at all, QK-normalization against attention-logit growth. Code, configurations, evaluation outputs and trained tokenizers are public.
+\end{abstract}
+
+\section{Introduction}
+A residual vector quantizer (RVQ) encodes an input as a stack of discrete codes, each level coding what the previous levels missed \citep{vandenoord2017vqvae,zeghidour2021soundstream}. NCM \citep{kumbong2026nextconcept} applies this to text: a tokenizer maps a window of tokens to a few coarse codes followed by progressively finer ones, and a generator writes the coarse codes first. The approach only pays off if the first levels hold the gist of the sentence. In NCM each coarse level is formed by averaging fixed windows of positions, so level~1 is shaped by where tokens sit rather than by what they say.
+
+We ask whether the first levels can be made to carry more meaning. We replace fixed pooling with learned-query pooling, where each code at a level attends over the encoded tokens (\S\ref{sec:method}). We compare against NCM retrained under the same budget, and against an NCM with the same parameter count as ours, to separate the effect of pooling from that of model size.
+
+Our findings:
+\begin{itemize}
+\item \textbf{Learned pooling puts more decodable meaning into level~1} (\S\ref{sec:decode}). Against both NCM baselines, on two seeds, by an embedding measure and by a validated LLM judge. The gain is largest at level~1 and gone by level~2.
+\item \textbf{The queries choose tokens.} Pooling attention moves away from its starting windows and differs between inputs.
+\item \textbf{It does not organize the code space by meaning} (\S\ref{sec:geometry}). A parameter-matched NCM with a deeper encoder gives codes whose similarity tracks STS-B far better than learned pooling.
+\item \textbf{QK-normalization is required} (\S\ref{sec:stability}) to train learned pooling and expansion in bf16.
+\end{itemize}
+The work is small in scale: one dataset, a 48-token window, and a training budget about 16 times below NCM's.
+
+\section{Background: NCM's residual tokenizer}
+For XSum, NCM's released configuration uses nine levels with $[4,6,10,14,20,26,32,40,48]$ codes per level over a 48-token window, so the last level has one code per token. Each level $k$ quantizes a pooled residual into $l_k$ vectors from a 4096-entry codebook, expands it back to full length with an operator $R_k$, and subtracts it from the residual. Nested dropout \citep{rippel2014nested,kusupati2022matryoshka} truncates the stack at a random level during training so that every prefix decodes. NCM pools by area-downsampling fixed windows (with a learned convolutional cascade at level~1) and expands by interpolation followed by a convolutional blend. We write \emph{k} for the cumulative use of levels $1..k$: $k{=}1$ is 4 codes, $k{=}3$ is 20, and ``full'' is all nine levels.
+
+\section{Method}\label{sec:method}
+\paragraph{Learned-query pooling (T1).} We call this tokenizer CruxTok, after the goal that its first level keep the crux of a sentence; the code and checkpoints use that name. A transformer encoder (4 blocks, $d{=}384$, 6 heads) contextualizes the token embeddings. At level $k$, $l_k$ learned queries cross-attend over the current residual, as in PMA, Perceiver and Q-Former \citep{lee2019set,jaegle2021perceiver,li2023blip2}. Plain learned queries collapsed: every slot at a level pooled the same vector. We therefore add a learnable attention prior to the logits, initialized to NCM's windows, so that slots start apart and can move. Expansion is the mirror image: $L$ learned position queries attend over the $l_k$ quantized vectors (with learned slot embeddings added to the keys) under their own learnable window prior. Padding positions (NCM fills the window with EOS after the first EOS) are masked from pooling attention. The last level is quantized per position, as in NCM, and a 2-block decoder maps the summed reconstruction to token logits. We use a straight-through estimator \citep{bengio2013ste} at every level, with each residual detached from previous levels' quantized output.
+
+\paragraph{Stabilizer.} Pooling and expansion attention use QK-normalization; Section~\ref{sec:stability} explains why.
+
+\section{Experimental setup}
+\paragraph{Training.} All tokenizers are trained on XSum training summaries \citep{narayan2018xsum} for 30{,}000 updates at batch 256, with AdamW (learning rate $5{\times}10^{-4}$ decayed to $5{\times}10^{-5}$, 1{,}000 warmup steps, $\beta_2{=}0.95$, weight decay 0.01, clipping at 1.0), EMA codebooks and nested dropout with probability 0.5. This is about 16 times fewer sequences than NCM's tokenizer budget, so we compare only against NCM retrained under the same budget (T0-cap), never against the released checkpoint.
+
+\begin{table}[t]
+\centering
+\footnotesize
+\begin{tabular}{llrl}
+\toprule
+Run & Description & Params & Seeds \\
+\midrule
+T0-cap & NCM architecture and schedule, same budget & 60.6M & 42 (fp16), 2 (bf16) \\
+T0-cap, matched & NCM with 5 encoder and 3 decoder blocks & 73.1M & 42 (bf16) \\
+T1 (CruxTok) & learned-query pooling & 73.2M & 42, 2 (bf16) \\
+\bottomrule
+\end{tabular}
+\caption{Runs. Parameter counts include codebooks, following NCM. The fp16 and bf16 T0-cap runs do not differ significantly on PAWS or STS-B at any level.}
+\label{tab:runs}
+\end{table}
+
+\paragraph{Code similarity.} The similarity of two sentences at level $k$ is the cosine between the means of their level $1..k$ codebook vectors. We report PAWS AUC \citep[labeled\_final test, 8{,}000 pairs;][]{zhang2019paws} and STS-B Spearman \citep[test, 1{,}379 pairs;][]{cer2017stsb}, both used for evaluation only. Differences use a paired bootstrap over pairs (2{,}000 resamples, 95\% CI). Floors are random scores, word Jaccard and TF-IDF cosine; the ceiling is all-mpnet-base-v2 \citep{reimers2019sbert}. A secondary measure averages the level-$k$ reconstruction over non-padding positions, since on STS-B the primary measure correlates with sentence length ($\rho$ between $-0.50$ and $-0.71$ with the shorter sentence's length) when most of the window is EOS filler.
+
+\paragraph{Decodable meaning (protocol fixed before results).} We decode 1{,}000 random XSum test summaries from levels $1..k$ only. Measure A is the cosine between Qwen3-Embedding-8B embeddings of the original and its reconstruction, with a paired bootstrap over items. Measure B is a pairwise LLM judge \citep{zheng2023judge}: the judge sees the original and two reconstructions at the same $k$ and answers which keeps more of who, what, where and the outcome, ignoring fluency. Each item is judged in both orders, and a side wins only if both orders agree; win rate is (wins + ties/2)/$n$ with a bootstrap CI. Four candidate judges were scored on STS-B before use; we use GLM-5.3 with low reasoning effort (Spearman 0.897 with human scores, order consistency 0.94). One candidate, Kimi-K2.5, was excluded because 38\% of its answers were empty.
+
+\section{Results}
+\subsection{Reconstruction}
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Run & $k{=}1$ & $k{=}2$ & $k{=}3$ & Full \\
+\midrule
+T0-cap (s42 / s2) & 23.5 / 23.0 & 36.3 / 35.7 & 47.1 / 46.5 & 95.8 / 95.7 \\
+T0-cap, matched & 19.3 & 32.3 & 45.6 & 97.8 \\
+T1 (s42 / s2) & 23.5 / 24.4 & 41.0 / 40.4 & \pos{60.1 / 60.7} & \pos{98.8 / 98.8} \\
+\bottomrule
+\end{tabular}
+\caption{Token accuracy (\%) on non-padding text tokens of held-out XSum summaries, decoding from levels $1..k$.}
+\label{tab:recon}
+\end{table}
+
+Table~\ref{tab:recon} shows that T1 reconstructs better than both baselines at every depth beyond level~1, by 13--15 points at $k{=}3$. Extra encoder and decoder depth in the matched baseline helps at full depth (95.8 to 97.8) but not at the coarse levels.
+
+\subsection{Learned pooling puts more decodable meaning into level 1}\label{sec:decode}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.82\linewidth, height=6.2cm,
+  xtick={1,2,3,4}, xticklabels={$k{=}1$,$k{=}2$,$k{=}3$,all 9},
+  xlabel={Levels used to decode}, ylabel={Cosine to original},
+  ymin=0.3, ymax=1.0, ymajorgrids, grid style={gray!20},
+  legend style={at={(0.97,0.05)},anchor=south east,font=\small,draw=none},
+  every axis plot/.append style={thick, mark size=2pt}]
+\addplot[blue!70!black, mark=*, error bars/.cd, y dir=both, y explicit]
+  coordinates {(1,0.452) +- (0,0.003) (2,0.525) +- (0,0.0035) (3,0.658) +- (0,0.0075) (4,0.986) +- (0,0.0005)};
+\addlegendentry{T1 (mean of 2 seeds)}
+\addplot[gray, mark=square*] coordinates {(1,0.359) (2,0.534) (3,0.667) (4,0.951)};
+\addlegendentry{T0-cap}
+\addplot[gray, dashed, mark=triangle*] coordinates {(1,0.342) (2,0.532) (3,0.634) (4,0.973)};
+\addlegendentry{T0-cap, matched}
+\end{axis}
+\end{tikzpicture}
+\caption{Measure A: embedding cosine between 1{,}000 XSum test summaries and their reconstructions from levels $1..k$. Error bars span the two T1 seeds.}
+\label{fig:embed}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\footnotesize
+\begin{tabular}{lcccc}
+\toprule
+& $k{=}1$ & $k{=}2$ & $k{=}3$ & Full \\
+\midrule
+\multicolumn{5}{l}{\emph{Measure A: embedding cosine difference}} \\
+T1 s42 $-$ T0-cap & \pos{+0.090} & $-$0.006 & $-$0.002 & \pos{+0.034} \\
+T1 s2 $-$ T0-cap & \pos{+0.097} & \pos{$-$0.013} & \pos{$-$0.017} & \pos{+0.033} \\
+T1 s42 $-$ T0-cap, matched & \pos{+0.107} & $-$0.004 & \pos{+0.031} & \pos{+0.012} \\
+T1 s2 $-$ T0-cap, matched & \pos{+0.113} & \pos{$-$0.011} & \pos{+0.016} & \pos{+0.011} \\
+\midrule
+\multicolumn{5}{l}{\emph{Measure B: LLM-judge win rate}} \\
+T1 s42 vs T0-cap & \pos{0.700} [0.678, 0.722] & 0.489 [0.463, 0.516] & \pos{0.541} [0.515, 0.568] & -- \\
+T1 s42 vs T0-cap, matched & \pos{0.740} [0.720, 0.760] & n/s & n/s & -- \\
+T1 s2 vs T0-cap, matched & \pos{0.772} [0.753, 0.792] & n/s & n/s & -- \\
+\bottomrule
+\end{tabular}
+\caption{Decodable meaning on 1{,}000 XSum test summaries. T0-cap is seed 42. Bold: 95\% CI excludes 0 (measure A) or 0.5 (measure B). n/s: not scored (see \S\ref{sec:limits}). Measure-A CI half-widths are at most 0.009.}
+\label{tab:decode}
+\end{table}
+
+Figure~\ref{fig:embed} and Table~\ref{tab:decode} show the main positive result. With four codes, T1 reconstructions are about 0.1 closer to the original in embedding space than either baseline, on both seeds. The judge agrees: it prefers T1's level-1 reconstruction in 70\% of comparisons against T0-cap, and in 74\% and 77\% against the matched baseline. The matched baseline is the weakest of the three at level~1, so the gain is not explained by parameter count. By $k{=}2$ the runs are within about 0.01 of each other.
+
+Table~\ref{tab:examples} shows reconstructions drawn at random. At level~1, T1 usually preserves the type of event (an injured footballer, a violent death) while getting names, places and numbers wrong; the matched baseline's level~1 is mostly unrelated text, except on formulaic sentences.
+
+\begin{table}[t]
+\centering
+\scriptsize
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+\toprule
+Original & T1, $k{=}1$ & T0-cap matched, $k{=}1$ \\
+\midrule
+West Ham striker Andy Carroll is facing up to six weeks out of action with a hamstring injury. & Newcastle midfielder Aaron Aaron has has he be surgery the out of the of after ankle injury. & Aales Minister Alex Johnson is preparing to his his. ahead of the. \\
+\addlinespace
+An attack by knife-wielding men at a railway station in Kunming in south-west China has left at least 29 dead, the state news agency Xinhua says. & An 11-year-old who who killed a car crash on a a in in in in,,, been to to a a the,,,, has said. & The defeat by the,.. \\
+\addlinespace
+A man has been arrested on suspicion of murder after a woman was found dead at a house in Worcestershire. & A man has been arrested on suspicion of murder after a woman woman was a in in in in indearkshire. & A man has been arrested on suspicion of murder after a woman- a murder at a house in arexhamhire. \\
+\addlinespace
+Indian police say that a 30-year-old American woman has been gang-raped in the northern state of Himachal Pradesh. & Turkish police have arrested a a a of a a in bomb have been killed in the the's of of of President B Bi. & Northern Ireland, the the to to a a in 10 State in the has a, on the first round of the the National season. \\
+\bottomrule
+\end{tabularx}
+\caption{Level-1 reconstructions. Four of six items drawn uniformly at random (seed 0) from the 1{,}000 evaluated; the other two, and $k{=}3$ outputs, are in the repository.}
+\label{tab:examples}
+\end{table}
+
+\paragraph{Do the queries choose tokens?} If pooling attention stayed on its starting windows, T1 would be NCM with extra parameters. On 256 held-out windows, pooling places zero mass on padding (44\% of positions), so we measure movement over text positions only, renormalizing both the attention and the starting window. At levels 1--3, 37--53\% of the attention mass on text moves away from the starting windows, the attention differs between inputs by 22--41\% (total-variation distance from the mean map), and it is narrower than the windows (14.6 vs 21.3 effective tokens at level~1). Both seeds agree within 0.04. The learned prior itself moves by only 0.05 at level~1, so the movement comes from the queries. Movement rules out fixed pooling; it does not show that attention moves toward meaning.
+
+\subsection{Pooling does not organize the code space by meaning}\label{sec:geometry}
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+& \multicolumn{3}{c}{PAWS AUC} & \multicolumn{3}{c}{STS-B Spearman} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+& $k{=}1$ & $k{=}2$ & $k{=}3$ & $k{=}1$ & $k{=}2$ & $k{=}3$ \\
+\midrule
+T0-cap (s42) & 0.546 & 0.549 & 0.551 & $-$0.058 & $-$0.029 & 0.067 \\
+T0-cap, matched & 0.547 & \pos{0.571} & \pos{0.579} & $-$0.009 & \pos{0.102} & \pos{0.282} \\
+T1 (s42 / s2) & 0.551 / \pos{0.561} & 0.563 / 0.562 & 0.566 / 0.563 & $-$0.033 / \pos{0.007} & $-$0.019 / $-$0.007 & 0.022 / 0.027 \\
+\midrule
+Floors: random / Jaccard / TF-IDF & \multicolumn{3}{c}{0.505 / 0.495 / 0.484} & \multicolumn{3}{c}{0.000 / 0.565 / 0.693} \\
+Ceiling: all-mpnet-base-v2 & \multicolumn{3}{c}{0.652} & \multicolumn{3}{c}{0.834} \\
+\bottomrule
+\end{tabular}}
+\caption{Code similarity, primary measure. Bold: best tokenizer in the column.}
+\label{tab:geometry}
+\end{table}
+
+Decoding a sentence from its own codes and giving similar sentences similar codes are different properties. Table~\ref{tab:geometry} shows that the parameter-matched baseline is best at the second. Against it, T1 is behind at $k{=}2$--3 on both tasks and both seeds, with CIs that exclude 0 (STS-B at $k{=}3$: $-0.259$ [$-0.314$, $-0.208$] for seed 42, $-0.255$ [$-0.311$, $-0.206$] for seed 2). T1 leads only at $k{=}1$ and only slightly ($+0.004$ to $+0.014$ PAWS; not significant on STS-B). The padding-aware secondary measure agrees (STS-B at $k{=}3$: 0.257 for the matched baseline against 0.147 and 0.116 for T1). In absolute terms all tokenizers are weak sentence-similarity models: word Jaccard alone reaches 0.565 on STS-B, and on PAWS every tokenizer scores 0.55--0.58 against 0.65 for the sentence-encoder ceiling.
+
+\section{Training stability}\label{sec:stability}
+\paragraph{Attention-logit growth.} T1 diverged in bf16 under per-level STE. The expansion attention's query and key weights grew about 50-fold and its logits reached about $10^7$, the failure described by \citet{dehghani2023vit22b} and \citet{wortsman2024proxies}. RMS-normalizing queries and keys per head \citep{henry2020qknorm}, with the scale fixed so that logits are bounded by $\sqrt{d_\text{head}}=8$, removed the divergence.
+
+\paragraph{A fallback that fails.} Applying STE only at the coarse levels, and NCM's global path below, left the deeper learned pools without a reconstruction gradient; their outputs collapsed to an RMS of 0.005. With learned pooling, every level needs its own gradient path.
+
+\section{Limitations}\label{sec:limits}
+The study uses one dataset of single-sentence summaries, a 48-token window and a reduced training budget. No generator was trained, so whether a more decodable level~1 improves coarse-to-fine generation is untested; that is the main open question. The judge was scored against the matched baseline only at $k{=}1$: at $k{=}3$ two runs failed our 5\% missing-answer guard because the judge sometimes exhausted its token budget reasoning, and a retry ran out of API credit; we report these as not scored. The matched baseline has one seed. Measure A partly rewards fluent reconstructions, which is why we pair it with the judge, which is told to ignore fluency.
+
+\section{Conclusion}
+Learned-query pooling makes the first four codes of a residual text tokenizer recover substantially more of a sentence than NCM's fixed pooling, including against an NCM with the same parameter count. It does not make similar sentences receive similar codes; a deeper NCM encoder does that better. For coarse-to-fine generation, the property that matters is likely decodability of the coarse levels, and that is the property pooling improves.
+
+\paragraph{Reproducibility.} Code, configurations, the decision log (including deviations), all evaluation outputs and the failed runs are at \url{https://github.com/Zilch123/CruxTok}. Trained tokenizers are at \url{https://huggingface.co/TimothDevA/cruxtok-runs}.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+\end{document}

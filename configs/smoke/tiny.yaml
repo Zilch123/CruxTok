@@ -1,0 +1,27 @@
+# Every feature on. Runs on CPU and on one T4.
+base: ../base/tokenizer.yaml
+run_name: smoke
+data:
+  dataset: synthetic
+model:
+  d: 64
+  in_vocab_size: 128
+  context_length: 32
+  encoder_blocks: 2
+  decoder_blocks: 1
+  n_heads: 4
+  levels: [2, 4, 8, 16, 32]
+  codebook_size: 64
+  pool_self_attn: true
+train:
+  steps: 200
+  micro_batch: 16
+  grad_accum: 2
+  warmup: 20
+runtime:
+  precision: fp32
+  ckpt_every: 50
+  log_every: 20
+  eval_every: 100
+  eval_examples: 64
+  eval_batch_size: 32
