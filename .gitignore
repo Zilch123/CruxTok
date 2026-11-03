@@ -221,7 +221,7 @@ __marimo__/
 
 # CruxTok
 runs/
-data/
+/data/
 *.pt
 wandb/
 .env
