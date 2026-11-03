@@ -204,7 +204,7 @@ The study uses one dataset of single-sentence summaries, a 48-token window and a
 \section{Conclusion}
 Learned-query pooling makes the first four codes of a residual text tokenizer recover substantially more of a sentence than NCM's fixed pooling, including against an NCM with the same parameter count. It does not make similar sentences receive similar codes; a deeper NCM encoder does that better. For coarse-to-fine generation, the property that matters is likely decodability of the coarse levels, and that is the property pooling improves.
 
-\paragraph{Reproducibility.} Code, configurations, the decision log (including deviations), all evaluation outputs and the failed runs are at \url{https://github.com/Zilch123/CruxTok}. Trained tokenizers are at \url{https://huggingface.co/TimothDevA/cruxtok}.
+\paragraph{Reproducibility.} Code, configurations, evaluation outputs and the level-1 reconstructions used by the judge are at \url{https://github.com/Zilch123/CruxTok}. Trained tokenizers are at \url{https://huggingface.co/TimothDevA/cruxtok}.
 
 \bibliographystyle{plainnat}
 \bibliography{references}
