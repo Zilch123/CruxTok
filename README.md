@@ -32,12 +32,12 @@ pytest -m slow            # released NCM tokenizers against the NCM paper; downl
 ```python
 from cruxtok.model.cruxtok import CruxTok
 
-tok = CruxTok.from_pretrained("runs/xsum_t1")       # a run directory holding tokenizer.pt
+tok = CruxTok.from_pretrained("TimothDevA/cruxtok", filename="t1_seed42/tokenizer.pt")
 codes = tok.encode("West Ham striker Andy Carroll is facing up to six weeks out of action.")
 print(tok.decode(codes, upto_level=1))               # from the first 4 codes only
 print(tok.decode(codes))                             # all levels
 ```
-Trained tokenizers: [huggingface.co/TimothDevA/cruxtok-runs](https://huggingface.co/TimothDevA/cruxtok-runs).
+Trained tokenizers (CruxTok seeds 42 and 2, and the three NCM baselines): [huggingface.co/TimothDevA/cruxtok](https://huggingface.co/TimothDevA/cruxtok). `from_pretrained` also accepts a local run directory.
 
 ## Reproduce
 Training (one GPU each; the reported runs used bf16, except T0-cap seed 42 in fp16):
