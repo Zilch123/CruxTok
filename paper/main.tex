@@ -90,7 +90,7 @@ For XSum, NCM's released configuration uses nine levels with $[4,6,10,14,20,26,3
 \addlegendentry{slot 4}
 \end{axis}
 \end{tikzpicture}
-\caption{Learned-query pooling at level~1. (a)~NCM pools four fixed 12-token windows. T1 has four learned queries whose attention starts from a Gaussian prior centred on those windows (sharpness 1.0), wider than the windows themselves. (b)~After training, on a held-out XSum summary drawn at random (seed 0) that fills 17 of the 48 positions: NCM's windows 3 and 4 would pool only EOS padding, while all four T1 slots attend to the text and none to padding. Slot~4 puts most of its mass (0.76) on the first EOS.}
+\caption{Learned-query pooling at level~1. (a)~NCM pools four fixed 12-token windows. T1 has four learned queries whose attention starts from a Gaussian prior centred on those windows (sharpness 1.0), wider than the windows themselves. (b)~After training, on a held-out XSum summary drawn at random (seed 0) that fills 17 of the 48 positions: NCM's windows 3 and 4 would pool only EOS padding, while all four T1 slots attend to the text and none to padding. T1's slots are not confined to their windows: the prior is a soft bias, and padding is masked, so slots 3 and 4 spread onto the nearest text. Slot~4 puts most of its mass (0.76) on the first EOS.}
 \label{fig:pooling}
 \end{figure}
 
