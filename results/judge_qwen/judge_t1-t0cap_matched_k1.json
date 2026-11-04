@@ -1,0 +1,26 @@
+{
+ "judge": "Qwen/Qwen3-235B-A22B-Instruct-2507",
+ "settings": {
+  "chat_template_kwargs": {
+   "enable_thinking": false
+  },
+  "reasoning_effort": "low"
+ },
+ "retry_tokens": 4000,
+ "spent_usd": 0.075,
+ "results": {
+  "t1:t0cap_matched": {
+   "k=1": {
+    "win_rate": 0.581,
+    "lo": 0.563,
+    "hi": 0.5985,
+    "a_wins": 257,
+    "b_wins": 95,
+    "ties": 648,
+    "n_valid": 1000,
+    "n_items": 1000,
+    "retried": 0
+   }
+  }
+ }
+}

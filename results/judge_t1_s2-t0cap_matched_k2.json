@@ -1,0 +1,26 @@
+{
+ "judge": "zai-org/GLM-5.3",
+ "settings": {
+  "chat_template_kwargs": {
+   "enable_thinking": false
+  },
+  "reasoning_effort": "low"
+ },
+ "retry_tokens": 4000,
+ "spent_usd": 0.986,
+ "results": {
+  "t1_s2:t0cap_matched": {
+   "k=2": {
+    "win_rate": 0.4795,
+    "lo": 0.452,
+    "hi": 0.506,
+    "a_wins": 362,
+    "b_wins": 403,
+    "ties": 235,
+    "n_valid": 1000,
+    "n_items": 1000,
+    "retried": 1
+   }
+  }
+ }
+}

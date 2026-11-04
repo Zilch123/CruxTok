@@ -9,6 +9,7 @@
 Yoshua Bengio, Nicholas L{\'e}onard, and Aaron Courville.
 \newblock Estimating or propagating gradients through stochastic neurons for
   conditional computation, 2013.
+\newblock arXiv:1308.3432.
 
 \bibitem[Cer et~al.(2017)Cer, Diab, Agirre, Lopez-Gazpio, and
   Specia]{cer2017stsb}
@@ -40,6 +41,7 @@ Hermann Kumbong, Ishan~S. Khare, Iddah Mlauzi, Andrew Woen, Charles Ding,
   E.~Kelly Buchanan, Simran Arora, Azalia Mirhoseini, and Christopher R{\'e}.
 \newblock Next-concept modeling: Fast, parallel coarse-to-fine text generation,
   2026.
+\newblock arXiv:2610.14162.
 
 \bibitem[Kusupati et~al.(2022)Kusupati, Bhatt, Rege, Wallingford, Sinha,
   Ramanujan, Howard-Snyder, Chen, Kakade, Jain, and
@@ -71,7 +73,7 @@ Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi.
 
 \bibitem[Narayan et~al.(2018)Narayan, Cohen, and Lapata]{narayan2018xsum}
 Shashi Narayan, Shay~B. Cohen, and Mirella Lapata.
-\newblock Don't give me the details, just the summary! topic-aware
+\newblock Don't give me the details, just the summary! {T}opic-aware
   convolutional neural networks for extreme summarization.
 \newblock In \emph{Proceedings of EMNLP}, 2018.
 
@@ -89,6 +91,7 @@ Oren Rippel, Michael Gelbart, and Ryan Adams.
   Lanzend{\"o}rfer]{siuzdak2024snac}
 Hubert Siuzdak, Florian Gr{\"o}tschla, and Luca~A. Lanzend{\"o}rfer.
 \newblock {SNAC}: Multi-scale neural audio codec, 2024.
+\newblock arXiv:2410.14411.
 
 \bibitem[Tian et~al.(2024)Tian, Jiang, Yuan, Peng, and Wang]{tian2024var}
 Keyu Tian, Yi~Jiang, Zehuan Yuan, Bingyue Peng, and Liwei Wang.
@@ -134,7 +137,7 @@ Qihang Yu, Mark Weber, Xueqing Deng, Xiaohui Shen, Daniel Cremers, and
   Tagliasacchi]{zeghidour2021soundstream}
 Neil Zeghidour, Alejandro Luebs, Ahmed Omran, Jan Skoglund, and Marco
   Tagliasacchi.
-\newblock Soundstream: An end-to-end neural audio codec.
+\newblock {SoundStream}: An end-to-end neural audio codec.
 \newblock \emph{IEEE/ACM Transactions on Audio, Speech, and Language
   Processing}, 2021.
 

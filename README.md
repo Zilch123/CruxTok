@@ -13,7 +13,7 @@ All runs are trained on XSum summaries for 30,000 updates at batch 256. "k" mean
 | T0-cap, matched (5 encoder / 3 decoder blocks) | 73.1M | 19.3 / 45.6 / 97.8 | 0.342 | 0.740 [0.720, 0.760] (seed 42), 0.772 [0.753, 0.792] (seed 2) |
 | **T1, CruxTok** (seeds 42 / 2) | 73.2M | 23.5 / 60.1 / 98.8, 24.4 / 60.7 / 98.8 | 0.449 / 0.455 | |
 
-- **Level 1 keeps the gist.** At k=1, CruxTok's reconstructions are about 0.1 closer to the original in embedding space than both baselines, on both seeds. A pairwise LLM judge, validated on STS-B (Spearman 0.90), prefers them in 70-77% of comparisons.
+- **Level 1 keeps the gist.** At k=1, CruxTok's reconstructions are about 0.1 closer to the original in embedding space than both baselines, on both seeds. A pairwise LLM judge, validated on STS-B (Spearman 0.90), gives CruxTok win rates of 0.70-0.77 (ties count half). A second validated judge agrees, with smaller margins (0.58-0.61). Both judges find the runs about even at k=2 and CruxTok ahead of the matched baseline at k=3.
 - **The queries choose tokens.** On text tokens, 37-53% of pooling attention moves away from NCM's starting windows, and it differs between inputs.
 - **The limit.** CruxTok does not make similar sentences get similar codes. On STS-B at k=3, code similarity reaches Spearman 0.28 for the matched baseline against 0.02-0.03 for CruxTok.
 
@@ -61,7 +61,7 @@ python -m cruxtok.eval.meaning embed --compare t1:t0cap
 python -m cruxtok.eval.meaning validate --model zai-org/GLM-5.3
 python -m cruxtok.eval.meaning judge --model zai-org/GLM-5.3 --compare t1:t0cap --k k=1
 ```
-`JUDGE_MAX_COST` caps spend per process at list prices.
+`JUDGE_MAX_COST` caps spend per process at list prices. `--retry-tokens 4000` asks unusable answers once more with a larger token limit, as in the reported k=2-3 runs against the matched baseline.
 
 ## Attribution
 Built on [Next-Concept Modeling](https://github.com/HazyResearch/ncm) (Kumbong et al., arXiv:2610.14162, MIT), included unmodified as a submodule at `third_party/ncm`. Code adapted from it keeps its MIT header and an attribution line.
