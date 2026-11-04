@@ -12,6 +12,10 @@
 \usepackage[numbers,sort&compress]{natbib}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.17}
+\definecolor{slotA}{RGB}{0,114,178}
+\definecolor{slotB}{RGB}{230,159,0}
+\definecolor{slotC}{RGB}{0,158,115}
+\definecolor{slotD}{RGB}{204,121,167}
 \usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
 
 \newcommand{\pos}[1]{\textbf{#1}}
@@ -46,7 +50,49 @@ The work is small in scale: one dataset, a 48-token window, and a training budge
 For XSum, NCM's released configuration uses nine levels with $[4,6,10,14,20,26,32,40,48]$ codes per level over a 48-token window, so the last level has one code per token. Each level $k$ quantizes a pooled residual into $l_k$ vectors from a 4096-entry codebook, expands it back to full length with an operator $R_k$, and subtracts it from the residual. Nested dropout \citep{rippel2014nested,kusupati2022matryoshka} truncates the stack at a random level during training so that every prefix decodes. NCM pools by area-downsampling fixed windows (with a learned convolutional cascade at level~1) and expands by interpolation followed by a convolutional blend. We write \emph{k} for the cumulative use of levels $1..k$: $k{=}1$ is 4 codes, $k{=}3$ is 20, and ``full'' is all nine levels.
 
 \section{Method}\label{sec:method}
-\paragraph{Learned-query pooling (T1).} We call this tokenizer CruxTok, after the goal that its first level keep the crux of a sentence; the code and checkpoints use that name. A transformer encoder (4 blocks, $d{=}384$, 6 heads) contextualizes the token embeddings. At level $k$, $l_k$ learned queries cross-attend over the current residual, as in PMA, Perceiver and Q-Former \citep{lee2019set,jaegle2021perceiver,li2023blip2}. Plain learned queries collapsed: every slot at a level pooled the same vector. We therefore add a learnable attention prior to the logits, initialized to a Gaussian centred on each of NCM's windows, so that slots start apart and can move. For the reported runs the prior's sharpness is 1.0, chosen on held-out reconstruction in short pilot runs. At this sharpness the prior is wider than NCM's windows: at level~1 it spans 21.3 effective tokens against NCM's 12, with on average 75\% of its mass inside its own window. Expansion is the mirror image: $L$ learned position queries attend over the $l_k$ quantized vectors (with learned slot embeddings added to the keys) under their own learnable window prior. Padding positions (NCM fills the window with EOS after the first EOS) are masked from the encoder's self-attention and from pooling attention; NCM masks no positions. The last level is quantized per position, as in NCM, and a 2-block decoder maps the summed reconstruction to token logits. We use a straight-through estimator \citep{bengio2013ste} at every level, with each residual detached from previous levels' quantized output.
+\paragraph{Learned-query pooling (T1).} We call this tokenizer CruxTok, after the goal that its first level keep the crux of a sentence; the code and checkpoints use that name. A transformer encoder (4 blocks, $d{=}384$, 6 heads) contextualizes the token embeddings. At level $k$, $l_k$ learned queries cross-attend over the current residual, as in PMA, Perceiver and Q-Former \citep{lee2019set,jaegle2021perceiver,li2023blip2}. Plain learned queries collapsed: every slot at a level pooled the same vector. We therefore add a learnable attention prior to the logits, initialized to a Gaussian centred on each of NCM's windows, so that slots start apart and can move (Figure~\ref{fig:pooling}a). For the reported runs the prior's sharpness is 1.0, chosen on held-out reconstruction in short pilot runs. At this sharpness the prior is wider than NCM's windows: at level~1 it spans 21.3 effective tokens against NCM's 12, with on average 75\% of its mass inside its own window. Expansion is the mirror image: $L$ learned position queries attend over the $l_k$ quantized vectors (with learned slot embeddings added to the keys) under their own learnable window prior. Padding positions (NCM fills the window with EOS after the first EOS) are masked from the encoder's self-attention and from pooling attention; NCM masks no positions. The last level is quantized per position, as in NCM, and a 2-block decoder maps the summed reconstruction to token logits. We use a straight-through estimator \citep{bengio2013ste} at every level, with each residual detached from previous levels' quantized output.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[name=a, width=0.93\linewidth, height=3.6cm, xmin=0.5, xmax=48.5, ymin=0, ymax=0.10, ytick={0,0.05,0.1}, yticklabel style={/pgf/number format/fixed},
+  xtick={1,12,24,36,48}, ylabel={weight}, yticklabel style={font=\tiny}, xticklabel style={font=\tiny},
+  title={\small (a) Level-1 pooling over a 48-token window: NCM's fixed windows (shaded) and T1's starting prior},
+  title style={yshift=-1ex}, axis lines=left, clip=false]
+\fill[slotA!12] (axis cs:0.5,0) rectangle (axis cs:12.5,0.10);
+\node[font=\tiny,slotA!80!black] at (axis cs:6.5,0.094) {NCM window 1};
+\fill[slotB!12] (axis cs:12.5,0) rectangle (axis cs:24.5,0.10);
+\node[font=\tiny,slotB!80!black] at (axis cs:18.5,0.094) {NCM window 2};
+\fill[slotC!12] (axis cs:24.5,0) rectangle (axis cs:36.5,0.10);
+\node[font=\tiny,slotC!80!black] at (axis cs:30.5,0.094) {NCM window 3};
+\fill[slotD!12] (axis cs:36.5,0) rectangle (axis cs:48.5,0.10);
+\node[font=\tiny,slotD!80!black] at (axis cs:42.5,0.094) {NCM window 4};
+\addplot[slotA, thick, no marks] coordinates {(1,0.0519) (2,0.0596) (3,0.0666) (4,0.0724) (5,0.0766) (6,0.0787) (7,0.0787) (8,0.0766) (9,0.0724) (10,0.0666) (11,0.0596) (12,0.0519) (13,0.0439) (14,0.0362) (15,0.0290) (16,0.0226) (17,0.0171) (18,0.0126) (19,0.0090) (20,0.0063) (21,0.0043) (22,0.0028) (23,0.0018) (24,0.0011) (25,0.0007) (26,0.0004) (27,0.0002) (28,0.0001) (29,0.0001) (30,0.0000) (31,0.0000) (32,0.0000) (33,0.0000) (34,0.0000) (35,0.0000) (36,0.0000) (37,0.0000) (38,0.0000) (39,0.0000) (40,0.0000) (41,0.0000) (42,0.0000) (43,0.0000) (44,0.0000) (45,0.0000) (46,0.0000) (47,0.0000) (48,0.0000)};
+\addplot[slotB, thick, no marks] coordinates {(1,0.0009) (2,0.0015) (3,0.0024) (4,0.0036) (5,0.0053) (6,0.0076) (7,0.0106) (8,0.0144) (9,0.0190) (10,0.0244) (11,0.0305) (12,0.0370) (13,0.0437) (14,0.0503) (15,0.0562) (16,0.0610) (17,0.0645) (18,0.0663) (19,0.0663) (20,0.0645) (21,0.0610) (22,0.0562) (23,0.0503) (24,0.0437) (25,0.0370) (26,0.0305) (27,0.0244) (28,0.0190) (29,0.0144) (30,0.0106) (31,0.0076) (32,0.0053) (33,0.0036) (34,0.0024) (35,0.0015) (36,0.0009) (37,0.0006) (38,0.0003) (39,0.0002) (40,0.0001) (41,0.0001) (42,0.0000) (43,0.0000) (44,0.0000) (45,0.0000) (46,0.0000) (47,0.0000) (48,0.0000)};
+\addplot[slotC, thick, no marks] coordinates {(1,0.0000) (2,0.0000) (3,0.0000) (4,0.0000) (5,0.0000) (6,0.0000) (7,0.0000) (8,0.0001) (9,0.0001) (10,0.0002) (11,0.0003) (12,0.0006) (13,0.0009) (14,0.0015) (15,0.0024) (16,0.0036) (17,0.0053) (18,0.0076) (19,0.0106) (20,0.0144) (21,0.0190) (22,0.0244) (23,0.0305) (24,0.0370) (25,0.0437) (26,0.0503) (27,0.0562) (28,0.0610) (29,0.0645) (30,0.0663) (31,0.0663) (32,0.0645) (33,0.0610) (34,0.0562) (35,0.0503) (36,0.0437) (37,0.0370) (38,0.0305) (39,0.0244) (40,0.0190) (41,0.0144) (42,0.0106) (43,0.0076) (44,0.0053) (45,0.0036) (46,0.0024) (47,0.0015) (48,0.0009)};
+\addplot[slotD, thick, no marks] coordinates {(1,0.0000) (2,0.0000) (3,0.0000) (4,0.0000) (5,0.0000) (6,0.0000) (7,0.0000) (8,0.0000) (9,0.0000) (10,0.0000) (11,0.0000) (12,0.0000) (13,0.0000) (14,0.0000) (15,0.0000) (16,0.0000) (17,0.0000) (18,0.0000) (19,0.0000) (20,0.0001) (21,0.0001) (22,0.0002) (23,0.0004) (24,0.0007) (25,0.0011) (26,0.0018) (27,0.0028) (28,0.0043) (29,0.0063) (30,0.0090) (31,0.0126) (32,0.0171) (33,0.0226) (34,0.0290) (35,0.0362) (36,0.0439) (37,0.0519) (38,0.0596) (39,0.0666) (40,0.0724) (41,0.0766) (42,0.0787) (43,0.0787) (44,0.0766) (45,0.0724) (46,0.0666) (47,0.0596) (48,0.0519)};
+\end{axis}
+\begin{axis}[at={(a.south west)}, anchor=north west, yshift=-1.0cm, width=0.93\linewidth, height=4.2cm,
+  xmin=0.5, xmax=24.5, ymin=0, ymax=0.8, ylabel={weight}, yticklabel style={font=\tiny},
+  xtick={1,...,17}, xticklabels={{Co},{-},{operative},{Bank},{is},{cutting},{200},{jobs},{as},{it},{looks},{to},{continue},{its},{recovery},{.},{\textsc{eos}}},
+  xticklabel style={font=\tiny, rotate=90, anchor=east}, axis lines=left,
+  title={\small (b) Trained T1 (seed 42), level-1 attention on a held-out summary (first 24 of 48 positions)},
+  title style={yshift=-1ex}, legend style={font=\tiny, draw=none, at={(0.02,0.98)}, anchor=north west}, legend columns=4]
+\fill[gray!15] (axis cs:17.5,0) rectangle (axis cs:24.5,0.8);
+\node[font=\tiny, gray!70!black, align=center] at (axis cs:21,0.45) {positions 18--48:\\EOS padding\\(masked)};
+\addplot[slotA, thick, mark=*, mark size=0.8pt] coordinates {(1,0.0703) (2,0.0894) (3,0.1427) (4,0.0919) (5,0.1053) (6,0.0815) (7,0.1102) (8,0.0608) (9,0.0374) (10,0.0068) (11,0.0284) (12,0.0345) (13,0.0024) (14,0.0197) (15,0.0084) (16,0.0629) (17,0.0473)};
+\addlegendentry{slot 1}
+\addplot[slotB, thick, mark=*, mark size=0.8pt] coordinates {(1,0.0277) (2,0.0188) (3,0.0172) (4,0.0637) (5,0.0534) (6,0.0151) (7,0.0368) (8,0.0444) (9,0.0692) (10,0.0948) (11,0.0603) (12,0.0082) (13,0.0786) (14,0.0439) (15,0.1445) (16,0.0789) (17,0.1446)};
+\addlegendentry{slot 2}
+\addplot[slotC, thick, mark=*, mark size=0.8pt] coordinates {(1,0.0000) (2,0.0000) (3,0.0000) (4,0.0000) (5,0.0000) (6,0.0003) (7,0.0224) (8,0.0009) (9,0.0033) (10,0.0955) (11,0.1013) (12,0.1205) (13,0.1298) (14,0.0722) (15,0.1336) (16,0.1427) (17,0.1775)};
+\addlegendentry{slot 3}
+\addplot[slotD, thick, mark=*, mark size=0.8pt] coordinates {(1,0.0000) (2,0.0000) (3,0.0000) (4,0.0000) (5,0.0000) (6,0.0000) (7,0.0000) (8,0.0000) (9,0.0000) (10,0.0000) (11,0.0020) (12,0.0018) (13,0.0026) (14,0.0114) (15,0.0127) (16,0.2117) (17,0.7577)};
+\addlegendentry{slot 4}
+\end{axis}
+\end{tikzpicture}
+\caption{Learned-query pooling at level~1. (a)~NCM pools four fixed 12-token windows. T1 has four learned queries whose attention starts from a Gaussian prior centred on those windows (sharpness 1.0), wider than the windows themselves. (b)~After training, on a held-out XSum summary drawn at random (seed 0) that fills 17 of the 48 positions: NCM's windows 3 and 4 would pool only EOS padding, while all four T1 slots attend to the text and none to padding. Slot~4 puts most of its mass (0.76) on the first EOS.}
+\label{fig:pooling}
+\end{figure}
 
 \paragraph{Objective.} The loss is token cross-entropy over the whole window plus, averaged over levels, NCM's terms $\beta\lVert z-\mathrm{sg}(\hat z_k)\rVert^2+\lVert\hat z_k-\mathrm{sg}(z)\rVert^2$ and a per-level commitment term $\beta\lVert u_k-\mathrm{sg}(e_k)\rVert^2$ that NCM does not use, with $\beta=0.25$. Here $u_k$ is the pooled residual, $e_k$ its codebook vector and $\hat z_k$ the reconstruction from levels $1..k$. T1's codebooks also restart codes whose usage falls below 1\% of uniform; NCM's do not.
 
@@ -167,7 +213,7 @@ A former Welsh amateur boxing champion said she is turning professional as she d
 \label{tab:examples}
 \end{table}
 
-\paragraph{Do the queries choose tokens?} If pooling attention stayed on its starting prior, T1 would be close to NCM with extra parameters. On 256 held-out windows, pooling places zero mass on padding (44\% of positions), so we measure movement over text positions only, renormalizing both the attention and the starting prior. At levels 1--3, the attention on text differs from the starting prior by 37--53\% (total-variation distance per input, so this includes the between-input variation), the attention differs between inputs by 22--41\% (total-variation distance from the mean map), and it is narrower than the starting prior (14.6 vs 21.3 effective tokens at level~1, the prior counted over all 48 positions), though still wider than NCM's 12-token window. Both seeds agree within 0.04. The learned prior itself moves by only 0.05 at level~1, so the movement there comes from the queries. The starting prior is not the attention at initialization: with QK-normalization the query--key logits are already of order 1 at step 0, and we did not measure attention there. Movement rules out fixed pooling; it does not show that attention moves toward meaning.
+\paragraph{Do the queries choose tokens?} If pooling attention stayed on its starting prior, T1 would be close to NCM with extra parameters. On 256 held-out windows, pooling places zero mass on padding (44\% of positions), so we measure movement over text positions only, renormalizing both the attention and the starting prior. At levels 1--3, the attention on text differs from the starting prior by 37--53\% (total-variation distance per input, so this includes the between-input variation), the attention differs between inputs by 22--41\% (total-variation distance from the mean map), and it is narrower than the starting prior (14.6 vs 21.3 effective tokens at level~1, the prior counted over all 48 positions), though still wider than NCM's 12-token window. Both seeds agree within 0.04. The learned prior itself moves by only 0.05 at level~1, so the movement there comes from the queries. The starting prior is not the attention at initialization: with QK-normalization the query--key logits are already of order 1 at step 0, and we did not measure attention there. Figure~\ref{fig:pooling}b shows one example. Movement rules out fixed pooling; it does not show that attention moves toward meaning.
 
 \subsection{Pooling does not organize the code space by meaning}\label{sec:geometry}
 \begin{table}[t]
