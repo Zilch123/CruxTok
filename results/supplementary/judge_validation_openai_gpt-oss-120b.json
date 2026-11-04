@@ -1,0 +1,7 @@
+{
+ "model": "openai/gpt-oss-120b",
+ "spearman": 0.853261276949575,
+ "parsed": 1379,
+ "n": 1379,
+ "order_consistency": 0.98
+}

@@ -1,0 +1,47 @@
+{
+ "task": "stsb test",
+ "n_pairs": 1379,
+ "length": "shorter sentence, GPT-2 tokens",
+ "runs": {
+  "t0cap_seed42": {
+   "params_M": 60.63,
+   "spearman_with_length": {
+    "k=1": -0.502,
+    "k=2": -0.47,
+    "k=3": -0.301
+   }
+  },
+  "t0cap_seed2": {
+   "params_M": 60.63,
+   "spearman_with_length": {
+    "k=1": -0.451,
+    "k=2": -0.441,
+    "k=3": -0.277
+   }
+  },
+  "t0cap_matched": {
+   "params_M": 73.06,
+   "spearman_with_length": {
+    "k=1": -0.272,
+    "k=2": -0.391,
+    "k=3": -0.202
+   }
+  },
+  "t1_seed42": {
+   "params_M": 73.23,
+   "spearman_with_length": {
+    "k=1": -0.626,
+    "k=2": -0.71,
+    "k=3": -0.631
+   }
+  },
+  "t1_seed2": {
+   "params_M": 73.23,
+   "spearman_with_length": {
+    "k=1": -0.638,
+    "k=2": -0.659,
+    "k=3": -0.627
+   }
+  }
+ }
+}
