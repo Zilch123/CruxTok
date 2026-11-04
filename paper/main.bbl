@@ -1,4 +1,4 @@
-\begin{thebibliography}{17}
+\begin{thebibliography}{19}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -50,6 +50,12 @@ Aditya Kusupati, Gantavya Bhatt, Aniket Rege, Matthew Wallingford, Aditya
 \newblock Matryoshka representation learning.
 \newblock In \emph{Advances in Neural Information Processing Systems}, 2022.
 
+\bibitem[Lee et~al.(2022)Lee, Kim, Kim, Cho, and Han]{lee2022rqvae}
+Doyup Lee, Chiheon Kim, Saehoon Kim, Minsu Cho, and Wook-Shin Han.
+\newblock Autoregressive image generation using residual quantization.
+\newblock In \emph{Proceedings of the IEEE/CVF Conference on Computer Vision
+  and Pattern Recognition}, pages 11523--11532, 2022.
+
 \bibitem[Lee et~al.(2019)Lee, Lee, Kim, Kosiorek, Choi, and Teh]{lee2019set}
 Juho Lee, Yoonho Lee, Jungtaek Kim, Adam Kosiorek, Seungjin Choi, and Yee~Whye
   Teh.
@@ -78,6 +84,12 @@ Nils Reimers and Iryna Gurevych.
 Oren Rippel, Michael Gelbart, and Ryan Adams.
 \newblock Learning ordered representations with nested dropout.
 \newblock In \emph{International Conference on Machine Learning}, 2014.
+
+\bibitem[Tian et~al.(2024)Tian, Jiang, Yuan, Peng, and Wang]{tian2024var}
+Keyu Tian, Yi~Jiang, Zehuan Yuan, Bingyue Peng, and Liwei Wang.
+\newblock Visual autoregressive modeling: Scalable image generation via
+  next-scale prediction.
+\newblock In \emph{Advances in Neural Information Processing Systems}, 2024.
 
 \bibitem[van~den Oord et~al.(2017)van~den Oord, Vinyals, and
   Kavukcuoglu]{vandenoord2017vqvae}
