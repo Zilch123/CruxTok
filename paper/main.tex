@@ -12,6 +12,7 @@
 \usepackage[numbers,sort&compress]{natbib}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.17}
+\usetikzlibrary{positioning,fit,arrows.meta,calc}
 \definecolor{slotA}{RGB}{0,114,178}
 \definecolor{slotB}{RGB}{230,159,0}
 \definecolor{slotC}{RGB}{0,158,115}
@@ -50,7 +51,62 @@ The work is small in scale: one dataset, a 48-token window, and a training budge
 For XSum, NCM's released configuration uses nine levels with $[4,6,10,14,20,26,32,40,48]$ codes per level over a 48-token window, so the last level has one code per token. Each level $k$ quantizes a pooled residual into $l_k$ vectors from a 4096-entry codebook, expands it back to full length with an operator $R_k$, and subtracts it from the residual. Nested dropout \citep{rippel2014nested,kusupati2022matryoshka} truncates the stack at a random level during training so that every prefix decodes. NCM pools by area-downsampling fixed windows (with a learned convolutional cascade at level~1) and expands by interpolation followed by a convolutional blend. We write \emph{k} for the cumulative use of levels $1..k$: $k{=}1$ is 4 codes, $k{=}3$ is 20, and ``full'' is all nine levels.
 
 \section{Method}\label{sec:method}
-\paragraph{Learned-query pooling (T1).} We call this tokenizer CruxTok, after the goal that its first level keep the crux of a sentence; the code and checkpoints use that name. A transformer encoder (4 blocks, $d{=}384$, 6 heads) contextualizes the token embeddings. At level $k$, $l_k$ learned queries cross-attend over the current residual, as in PMA, Perceiver and Q-Former \citep{lee2019set,jaegle2021perceiver,li2023blip2}. Plain learned queries collapsed: every slot at a level pooled the same vector. We therefore add a learnable attention prior to the logits, initialized to a Gaussian centred on each of NCM's windows, so that slots start apart and can move (Figure~\ref{fig:pooling}a). For the reported runs the prior's sharpness is 1.0, chosen on held-out reconstruction in short pilot runs. At this sharpness the prior is wider than NCM's windows: at level~1 it spans 21.3 effective tokens against NCM's 12, with on average 75\% of its mass inside its own window. Expansion is the mirror image: $L$ learned position queries attend over the $l_k$ quantized vectors (with learned slot embeddings added to the keys) under their own learnable window prior. Padding positions (NCM fills the window with EOS after the first EOS) are masked from the encoder's self-attention and from pooling attention; NCM masks no positions. The last level is quantized per position, as in NCM, and a 2-block decoder maps the summed reconstruction to token logits. We use a straight-through estimator \citep{bengio2013ste} at every level, with each residual detached from previous levels' quantized output.
+\begin{figure}[t]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[font=\footnotesize, >=Stealth, node distance=4mm,
+  box/.style={draw=black!60, rounded corners=2pt, align=center, inner sep=3pt, fill=gray!8},
+  new/.style={box, fill=slotA!15, draw=slotA!80!black, thick},
+  zoom/.style={draw=slotA!80!black, rounded corners=2pt, fill=slotA!5, align=left, inner sep=4pt, text width=6.1cm, font=\scriptsize},
+  op/.style={draw=black!60, circle, inner sep=0.5pt, fill=white},
+  every edge/.style={draw, ->}]
+% main row
+\node (in) {tokens};
+\node[box, right=of in] (enc) {Encoder\\4 blocks,\\pad.\ masked\\+ LN (no gain)};
+\node[right=3mm of enc] (H) {$H$};
+\node[op, right=5mm of H] (minus) {$-$};
+\node[new, right=6mm of minus] (pool) {Pool$_k$};
+\node[box, right=of pool] (vq) {VQ$_k$\\4096 codes,\\EMA, STE};
+\node[new, right=of vq] (exp) {Expand$_k$};
+\node[op, right=6mm of exp] (plus) {$+$};
+\node[box, right=7mm of plus] (dec) {Decoder\\2 blocks\\+ LN + head};
+\node[right=of dec] (out) {logits};
+\draw[->] (in) -- (enc);
+\draw[->] (enc) -- (H);
+\draw[->] (H) -- (minus);
+\draw[->] (minus) -- node[above, font=\scriptsize] {$r_k$} (pool);
+\draw[->] (pool) -- node[above, font=\scriptsize] {$u_k$} (vq);
+\draw[->] (vq) -- node[above, font=\scriptsize] {$e_k$} (exp);
+\draw[->] (exp) -- node[above, font=\scriptsize] {$\hat z_k$} (plus);
+\draw[->] (plus) -- (dec);
+\draw[->] (dec) -- (out);
+% residual feedback: r_{k+1} = H - sg(sum_{j<=k} zhat_j)
+\draw[->] (plus.south) -- ++(0,-0.75) -| node[pos=0.25, below, font=\scriptsize] {next residual: $r_{k+1}=H-\mathrm{sg}\big(\sum_{j\le k}\hat z_j\big)$} (minus.south);
+% loop frame
+\node[draw=black!40, dashed, rounded corners=3pt, fit=(minus)(pool)(vq)(exp)(plus), inner sep=5pt, yshift=1mm,
+      label={[font=\scriptsize, text=black!70]above:{levels $k=1..9$ (level 9 is per position, no Pool/Expand)}}] (loop) {};
+% zoom-ins
+\path (in.west) -- (out.east) coordinate[midway] (mid);
+\node[zoom, anchor=north east] (zp) at ($(mid)+(-2mm,-17mm)$) {%
+  \textbf{Pool$_k$} \textcolor{black!60}{(replaces NCM's area pooling; learned conv at level 1)}\\[1pt]
+  $Q$: $l_k$ learned queries + level embedding\\
+  $K$: LN$(r_k)$ \quad $V$: $r_k$, not normalized\\
+  $u_k=\mathrm{softmax}\big(\tilde Q\tilde K^{\top}/\sqrt{d_h}+P_k\big)V$\\
+  padding positions masked; $\to$ $l_k$ vectors};
+\node[zoom, anchor=north west] (ze) at ($(mid)+(2mm,-17mm)$) {%
+  \textbf{Expand$_k$} \textcolor{black!60}{(replaces NCM's interpolation + conv blend)}\\[1pt]
+  $Q$: 48 learned position queries\\
+  $K$: LN$(e_k)$ + slot embeddings \quad $V$: $e_k$\\
+  $\hat z_k=\mathrm{softmax}\big(\tilde Q\tilde K^{\top}/\sqrt{d_h}+P'_k\big)V$\\
+  $\to$ 48 vectors};
+\draw[slotA!80!black, densely dotted] (pool.south) -- (zp.north);
+\draw[slotA!80!black, densely dotted] (exp.south) -- (ze.north);
+\end{tikzpicture}}
+\caption{The T1 (CruxTok) tokenizer. Blue boxes replace NCM's per-level pooling and expansion; the residual loop, codebooks and nested dropout follow NCM. Section~\ref{sec:method} lists the other differences from the baselines (encoder and decoder depth, padding masking, loss terms, code restarts). In both attention blocks (linear projections omitted), $\tilde Q,\tilde K$ are RMS-normalized per head (QK-norm, \S\ref{sec:stability}) and $P_k$, $P'_k$ are learnable priors initialized to NCM's windows (Figure~\ref{fig:pooling}). Pooling values are the raw residual, so $u_k$ keeps the residual's scale, which shrinks with level. LN: LayerNorm; sg: stop-gradient. During training the decoder receives the sum up to a randomly truncated level (nested dropout).}
+\label{fig:arch}
+\end{figure}
+
+\paragraph{Learned-query pooling (T1).} We call this tokenizer CruxTok, after the goal that its first level keep the crux of a sentence; the code and checkpoints use that name. Figure~\ref{fig:arch} shows the whole tokenizer. A transformer encoder (4 blocks, $d{=}384$, 6 heads) contextualizes the token embeddings, and its output passes through a LayerNorm without learned gain. At level $k$, $l_k$ learned queries cross-attend over the current residual, as in PMA, Perceiver and Q-Former \citep{lee2019set,jaegle2021perceiver,li2023blip2}. Plain learned queries collapsed: every slot at a level pooled the same vector. We therefore add a learnable attention prior to the logits, initialized to a Gaussian centred on each of NCM's windows, so that slots start apart and can move (Figure~\ref{fig:pooling}a). For the reported runs the prior's sharpness is 1.0, chosen on held-out reconstruction in short pilot runs. At this sharpness the prior is wider than NCM's windows: at level~1 it spans 21.3 effective tokens against NCM's 12, with on average 75\% of its mass inside its own window. Expansion is the mirror image: $L$ learned position queries attend over the $l_k$ quantized vectors (with learned slot embeddings added to the keys) under their own learnable window prior. In both, keys are layer-normalized while values are not, so pooled vectors keep the residual's scale; pooling queries also carry a learned per-level embedding. Padding positions (NCM fills the window with EOS after the first EOS) are masked from the encoder's self-attention and from pooling attention; NCM masks no positions. The last level is quantized per position, as in NCM, and a 2-block decoder maps the summed reconstruction to token logits. We use a straight-through estimator \citep{bengio2013ste} at every level, with each residual detached from previous levels' quantized output.
 
 \begin{figure}[t]
 \centering
