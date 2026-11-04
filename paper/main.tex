@@ -57,8 +57,8 @@ For XSum, NCM's released configuration uses nine levels with $[4,6,10,14,20,26,3
 \begin{tikzpicture}
 \begin{axis}[name=a, width=0.93\linewidth, height=3.6cm, xmin=0.5, xmax=48.5, ymin=0, ymax=0.10, ytick={0,0.05,0.1}, yticklabel style={/pgf/number format/fixed},
   xtick={1,12,24,36,48}, ylabel={weight}, yticklabel style={font=\tiny}, xticklabel style={font=\tiny},
-  title={\small (a) Level-1 pooling over a 48-token window: NCM's fixed windows (shaded) and T1's starting prior},
-  title style={yshift=-1ex}, axis lines=left, clip=false]
+  title={(a) Level 1 splits the 48 input positions among 4 slots:\\NCM's fixed 12-token windows (shaded) and T1's starting prior, sharpness 1.0 (curves)},
+  title style={yshift=-1ex, align=center, font=\small}, axis lines=left, clip=false]
 \fill[slotA!12] (axis cs:0.5,0) rectangle (axis cs:12.5,0.10);
 \node[font=\tiny,slotA!80!black] at (axis cs:6.5,0.094) {NCM window 1};
 \fill[slotB!12] (axis cs:12.5,0) rectangle (axis cs:24.5,0.10);
