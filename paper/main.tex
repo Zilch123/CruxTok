@@ -30,7 +30,7 @@
 \maketitle
 
 \begin{abstract}
-Coarse-to-fine text generators such as Next-Concept Modeling (NCM) rely on a residual vector-quantized tokenizer whose first levels should carry the gist of a sentence. NCM builds each coarse level by pooling fixed windows of positions. We replace this with learned-query pooling (CruxTok, T1) and train on XSum summaries. Learned pooling makes level 1 recover much more of a sentence: against an NCM baseline with the same parameter count, T1's level-1 reconstructions reach LLM-judge win rates of 0.74 and 0.77 (two seeds, ties counted half; the judge picks T1 outright in 57\% and 63\% of items and the baseline in 9\% and 8\%), and embedding similarity to the original rises from 0.34 to 0.45. T1 also reconstructs 13--15 points more tokens from the first three levels. The pooling attention moves away from its starting prior and depends on the input. The parameter-matched baseline, which spends its extra parameters on encoder and decoder depth, gives codes whose similarity tracks STS-B better (Spearman 0.28 at level 3, against 0.02--0.03 for T1). Decodable meaning and meaning-organized codes are separate properties, and pooling buys the first but not the second. We also report the stabilizer needed to train learned pooling at all, QK-normalization against attention-logit growth. Code, configurations, evaluation outputs and trained tokenizers are public.
+Coarse-to-fine text generators such as Next-Concept Modeling (NCM) rely on a residual vector-quantized tokenizer whose first levels should carry the gist of a sentence. NCM builds each coarse level by pooling fixed windows of positions. We replace this with learned-query pooling (CruxTok, T1) and train on XSum summaries. Learned pooling makes level 1 recover much more of a sentence: against an NCM baseline with the same parameter count, T1's level-1 reconstructions reach LLM-judge win rates of 0.74 and 0.77 (two seeds, ties counted half; the judge picks T1 outright in 57\% and 63\% of items and the baseline in 9\% and 8\%; a second validated judge, which calls more ties, gives 0.58 and 0.61), and embedding similarity to the original rises from 0.34 to 0.45; both results hold against a second seed of that baseline. T1 also reconstructs 13--15 points more tokens from the first three levels. The pooling attention moves away from its starting prior and depends on the input. The parameter-matched baseline, which spends its extra parameters on encoder and decoder depth, gives codes whose similarity tracks STS-B better (Spearman 0.28 at level 3, against 0.02--0.03 for T1). Decodable meaning and meaning-organized codes are separate properties, and pooling buys the first but not the second. We also report the stabilizer needed to train learned pooling at all, QK-normalization against attention-logit growth. Code, configurations, evaluation outputs and trained tokenizers are public.
 \end{abstract}
 
 \section{Introduction}
@@ -40,7 +40,7 @@ We ask whether the first levels can be made to carry more meaning. We replace fi
 
 Our findings:
 \begin{itemize}
-\item \textbf{Learned pooling puts more decodable meaning into level~1} (\S\ref{sec:decode}). Against both NCM baselines, on two seeds, by an embedding measure and by a validated LLM judge. The gain is largest at level~1 and gone by level~2.
+\item \textbf{Learned pooling puts more decodable meaning into level~1} (\S\ref{sec:decode}). Against both NCM baselines, on two seeds, by an embedding measure and by two validated LLM judges. The gain is clearest at level~1. At level~2 the runs are about even; at level~3 T1 is ahead of the matched baseline again, by a smaller embedding margin.
 \item \textbf{The queries choose tokens.} Pooling attention moves away from its starting prior and differs between inputs.
 \item \textbf{It does not organize the code space by meaning} (\S\ref{sec:geometry}). A parameter-matched NCM with a deeper encoder gives codes whose similarity tracks STS-B far better than learned pooling.
 \item \textbf{QK-normalization is required} (\S\ref{sec:stability}) to train learned pooling and expansion in bf16.
@@ -168,7 +168,7 @@ Multi-scale residual tokenizers that resample between scales with fixed operator
 Run & Description & Params & Seeds \\
 \midrule
 T0-cap & NCM architecture and schedule, same budget & 60.6M & 42 (fp16), 2 (bf16) \\
-T0-cap, matched & NCM with 5 encoder and 3 decoder blocks & 73.1M & 42 (bf16) \\
+T0-cap, matched & NCM with 5 encoder and 3 decoder blocks & 73.1M & 42, 2 (bf16) \\
 T1 (CruxTok) & learned-query pooling & 73.2M & 42, 2 (bf16) \\
 \bottomrule
 \end{tabular}
@@ -178,7 +178,7 @@ T1 (CruxTok) & learned-query pooling & 73.2M & 42, 2 (bf16) \\
 
 \paragraph{Code similarity.} The similarity of two sentences at level $k$ is the cosine between the means of their level $1..k$ codebook vectors. We report PAWS AUC \citep[labeled\_final test, 8{,}000 pairs;][]{zhang2019paws} and STS-B Spearman \citep[test, 1{,}379 pairs;][]{cer2017stsb}, both used for evaluation only. Differences use a paired bootstrap over pairs (2{,}000 resamples, 95\% CI). Floors are random scores, word Jaccard and TF-IDF cosine; the ceiling is all-mpnet-base-v2 \citep{reimers2019sbert}. A secondary measure averages the level-$k$ reconstruction over non-padding positions, since on STS-B the primary measure correlates with sentence length ($\rho$ with the shorter sentence's length between $-0.20$ and $-0.71$ across tokenizers at $k{=}1$--3, and $-0.63$ to $-0.71$ for T1) when most of the window is EOS filler.
 
-\paragraph{Decodable meaning (protocol fixed before results).} We decode 1{,}000 random XSum test summaries from levels $1..k$ only. Measure A is the cosine between Qwen3-Embedding-8B embeddings of the original and its reconstruction, with a paired bootstrap over items. Measure B is a pairwise LLM judge \citep{zheng2023judge}: the judge sees the original and two reconstructions at the same $k$ and answers which keeps more of who, what, where and the outcome, ignoring fluency. Each item is judged in both orders, and a side wins only if both orders agree; win rate is (wins + ties/2)/$n$ with a bootstrap CI, where ties include order disagreements and $n$ counts the items with usable answers in both orders (991--999 of 1{,}000). Four candidate judges were scored on STS-B before use; we use GLM-5.3 with low reasoning effort (Spearman 0.897 with human scores, order consistency 0.94). One candidate, Kimi-K2.5, was excluded because 38\% of its answers were empty.
+\paragraph{Decodable meaning (protocol fixed before results).} We decode 1{,}000 random XSum test summaries from levels $1..k$ only. Measure A is the cosine between Qwen3-Embedding-8B embeddings of the original and its reconstruction, with a paired bootstrap over items. Measure B is a pairwise LLM judge \citep{zheng2023judge}: the judge sees the original and two reconstructions at the same $k$ and answers which keeps more of who, what, where and the outcome, ignoring fluency. Each item is judged in both orders, and a side wins only if both orders agree; win rate is (wins + ties/2)/$n$ with a bootstrap CI, where ties include order disagreements and $n$ counts the items with usable answers in both orders (991--1{,}000 of 1{,}000). Four candidate judges were scored on STS-B before use; we use GLM-5.3 with low reasoning effort (Spearman 0.897 with human scores, order consistency 0.94). One candidate, Kimi-K2.5, was excluded because 38\% of its answers were empty. In the $k{=}2$--3 runs against the matched baseline, unusable answers were asked once more with a larger token budget (1--8 answers per run). As a robustness check declared after the primary results, the runner-up Qwen3-235B-Instruct-2507 (Spearman 0.883, order consistency 0.915), which does not reason before answering, re-judges every comparison against the matched baseline with the same protocol.
 
 \section{Results}
 \subsection{Reconstruction}
@@ -190,11 +190,11 @@ T1 (CruxTok) & learned-query pooling & 73.2M & 42, 2 (bf16) \\
 Run & $k{=}1$ & $k{=}2$ & $k{=}3$ & Full \\
 \midrule
 T0-cap (s42 / s2) & 23.5 / 23.0 & 36.3 / 35.7 & 47.1 / 46.5 & 95.8 / 95.7 \\
-T0-cap, matched & 19.3 & 32.3 & 45.6 & 97.8 \\
-T1 (s42 / s2) & 23.5 / 24.4 & 41.0 / 40.4 & \pos{60.1 / 60.7} & \pos{98.8 / 98.8} \\
+T0-cap, matched (s42 / s2) & 19.3 / 19.6 & 32.3 / 32.3 & 45.6 / 45.6 & 97.8 / 97.9 \\
+T1 (s42 / s2) & 23.5 / 24.4 & \pos{41.0 / 40.4} & \pos{60.1 / 60.7} & \pos{98.8 / 98.8} \\
 \bottomrule
 \end{tabular}
-\caption{Token accuracy (\%) on the text tokens, including the first EOS, of the first 2{,}000 XSum validation summaries, decoding from levels $1..k$.}
+\caption{Token accuracy (\%) on the text tokens, including the first EOS, of the first 2{,}000 XSum validation summaries, decoding from levels $1..k$. Bold: T1 ahead of both baselines on both seeds.}
 \label{tab:recon}
 \end{table}
 
@@ -218,10 +218,10 @@ Table~\ref{tab:recon} shows that T1 reconstructs better than both baselines at e
 \addplot[gray, mark=square*] coordinates {(1,0.359) (2,0.534) (3,0.667) (4,0.951)};
 \addlegendentry{T0-cap}
 \addplot[gray, dashed, mark=triangle*] coordinates {(1,0.342) (2,0.532) (3,0.634) (4,0.973)};
-\addlegendentry{T0-cap, matched}
+\addlegendentry{T0-cap, matched (s42)}
 \end{axis}
 \end{tikzpicture}
-\caption{Measure A: embedding cosine between 1{,}000 XSum test summaries and their reconstructions from levels $1..k$. Error bars span the two T1 seeds.}
+\caption{Measure A: embedding cosine between 1{,}000 XSum test summaries and their reconstructions from levels $1..k$. Error bars span the two T1 seeds and are mostly smaller than the markers. The second seed of the matched baseline is within 0.003 of seed 42 at every $k$.}
 \label{fig:embed}
 \end{figure}
 
@@ -238,17 +238,25 @@ T1 s2 $-$ T0-cap & \pos{+0.097} & \pos{$-$0.013} & \pos{$-$0.017} & \pos{+0.033}
 T1 s42 $-$ T0-cap, matched & \pos{+0.107} & $-$0.004 & \pos{+0.031} & \pos{+0.012} \\
 T1 s2 $-$ T0-cap, matched & \pos{+0.113} & \pos{$-$0.011} & \pos{+0.016} & \pos{+0.011} \\
 \midrule
-\multicolumn{5}{l}{\emph{Measure B: LLM-judge win rate}} \\
+\multicolumn{5}{l}{\emph{Measure B: LLM-judge win rate, GLM-5.3}} \\
 T1 s42 vs T0-cap & \pos{0.700} [0.678, 0.722] & 0.489 [0.463, 0.516] & \pos{0.541} [0.515, 0.568] & -- \\
-T1 s42 vs T0-cap, matched & \pos{0.740} [0.720, 0.760] & n/s & n/s & -- \\
-T1 s2 vs T0-cap, matched & \pos{0.772} [0.753, 0.792] & n/s & n/s & -- \\
+T1 s42 vs T0-cap, matched & \pos{0.740} [0.720, 0.760] & 0.519 [0.493, 0.547] & \pos{0.637} [0.611, 0.663] & -- \\
+T1 s2 vs T0-cap, matched & \pos{0.772} [0.753, 0.792] & 0.479 [0.452, 0.506] & \pos{0.592} [0.565, 0.618] & -- \\
+\midrule
+\multicolumn{5}{l}{\emph{Measure B: second judge, Qwen3-235B-Instruct-2507}} \\
+T1 s42 vs T0-cap, matched & \pos{0.581} [0.563, 0.599] & \pos{0.545} [0.521, 0.567] & \pos{0.677} [0.654, 0.701] & -- \\
+T1 s2 vs T0-cap, matched & \pos{0.607} [0.590, 0.625] & 0.498 [0.476, 0.521] & \pos{0.652} [0.627, 0.677] & -- \\
 \bottomrule
 \end{tabular}
-\caption{Decodable meaning on 1{,}000 XSum test summaries. T0-cap is seed 42. Bold: 95\% CI excludes 0 (measure A) or 0.5 (measure B). n/s: not scored (see \S\ref{sec:limits}). Measure-A CI half-widths are at most 0.009.}
+\caption{Decodable meaning on 1{,}000 XSum test summaries. Both baselines are seed 42; results against the matched baseline's seed 2 are in the text. Bold: 95\% CI excludes 0 (measure A) or 0.5 (measure B). Measure-A CI half-widths are at most 0.009.}
 \label{tab:decode}
 \end{table}
 
-Figure~\ref{fig:embed} and Table~\ref{tab:decode} show the main positive result. With four codes, T1 reconstructions are about 0.1 closer to the original in embedding space than either baseline, on both seeds. The judge agrees: T1's level-1 win rate is 0.70 against T0-cap, and 0.74 and 0.77 against the matched baseline. Counting outright preferences only, the judge picks T1 in 52\% of items against T0-cap (12\% for T0-cap), and in 57\% and 63\% against the matched baseline (9\% and 8\%); the rest are ties or order disagreements. The matched baseline is the weakest of the three at level~1, so the gain is not explained by parameter count. By $k{=}2$ the runs are within about 0.01 of each other.
+Figure~\ref{fig:embed} and Table~\ref{tab:decode} show the main positive result. With four codes, T1 reconstructions are about 0.1 closer to the original in embedding space than either baseline, on both seeds. The judge agrees: T1's level-1 win rate is 0.70 against T0-cap, and 0.74 and 0.77 against the matched baseline. Counting outright preferences only, the judge picks T1 in 52\% of items against T0-cap (12\% for T0-cap), and in 57\% and 63\% against the matched baseline (9\% and 8\%); the rest are ties or order disagreements. The matched baseline is the weakest of the three at level~1, so the gain is not explained by parameter count. By $k{=}2$ the runs are within about 0.01 of each other in embedding space, and the judge finds T1 and the matched baseline about even (0.52 and 0.48). At $k{=}3$, T1 is ahead of the matched baseline again by both measures (judge 0.64 and 0.59), though not of the original T0-cap by measure A.
+
+The second judge agrees in direction at every level but calls about twice as many ties, so its level-1 win rates are lower (0.58 and 0.61; outright, T1 in 26\% and 29\% of items and the baseline in 10\% and 8\%). Unlike the primary judge, it puts T1's largest margin at $k{=}3$ (0.68 and 0.65). The size of the level-1 effect is therefore judge-dependent; its sign is not.
+
+A second seed of the matched baseline, trained after these results, gives the same picture. Its reconstructions are within 0.003 of seed 42's by measure A at every $k$ (no CI excludes 0). Against it, T1's level-1 win rates are 0.74 and 0.77 with GLM-5.3 and 0.58 and 0.60 with the second judge, and measure A rises by 0.105 and 0.111. At $k{=}3$ T1 stays ahead by both judges (0.63 and 0.58; 0.68 and 0.64) and by measure A ($+0.028$ and $+0.013$). At $k{=}2$ the runs are again about even, with one comparison now significant: GLM-5.3 puts T1 seed 2 behind (0.468 [0.443, 0.494]), as measure A already did ($-0.012$). In one of these runs 340 answers needed the second request, most likely because of failed API calls; 999 items were usable.
 
 Table~\ref{tab:examples} shows reconstructions drawn at random. At level~1, T1 often preserves the type of event (an injured footballer, a crash at a racing championship) while getting names, places and numbers wrong, though on the boxing item it keeps little; the matched baseline's level~1 is mostly unrelated text, except on formulaic sentences such as the murder arrest.
 
@@ -287,18 +295,20 @@ A former Welsh amateur boxing champion said she is turning professional as she d
 & $k{=}1$ & $k{=}2$ & $k{=}3$ & $k{=}1$ & $k{=}2$ & $k{=}3$ \\
 \midrule
 T0-cap (s42) & 0.546 & 0.549 & 0.551 & $-$0.058 & $-$0.029 & 0.067 \\
-T0-cap, matched & 0.547 & \pos{0.571} & \pos{0.579} & $-$0.009 & \pos{0.102} & \pos{0.282} \\
-T1 (s42 / s2) & 0.551 / \pos{0.561} & 0.563 / 0.562 & 0.566 / 0.563 & $-$0.033 / \pos{0.007} & $-$0.019 / $-$0.007 & 0.022 / 0.027 \\
+T0-cap, matched (s42 / s2) & 0.547 / 0.551 & \pos{0.571 / 0.573} & \pos{0.579 / 0.576} & $-$0.009 / \pos{0.026} & \pos{0.102 / 0.088} & \pos{0.282 / 0.280} \\
+T1 (s42 / s2) & 0.551 / \pos{0.561} & 0.563 / 0.562 & 0.566 / 0.563 & $-$0.033 / 0.007 & $-$0.019 / $-$0.007 & 0.022 / 0.027 \\
 \midrule
 Floors: random / Jaccard / TF-IDF & \multicolumn{3}{c}{0.505 / 0.495 / 0.484} & \multicolumn{3}{c}{0.000 / 0.565 / 0.693} \\
 Ceiling: all-mpnet-base-v2 & \multicolumn{3}{c}{0.652} & \multicolumn{3}{c}{0.834} \\
 \bottomrule
 \end{tabular}}
-\caption{Code similarity, primary measure. Bold: best tokenizer in the column.}
+\caption{Code similarity, primary measure. Bold: best tokenizer in the column; both seeds of the matched baseline are bold where both are ahead of every other run. The two matched seeds do not differ significantly anywhere.}
 \label{tab:geometry}
 \end{table}
 
 Decoding a sentence from its own codes and giving similar sentences similar codes are different properties. Table~\ref{tab:geometry} shows that the parameter-matched baseline is best at the second. Against it, T1 is behind at $k{=}2$--3 on both tasks and both seeds. The CIs exclude 0 everywhere except PAWS at $k{=}2$ ($-0.008$ [$-0.019$, $+0.003$] for both seeds). On STS-B at $k{=}3$ the gap is $-0.259$ [$-0.314$, $-0.208$] for seed 42 and $-0.255$ [$-0.311$, $-0.206$] for seed 2. At $k{=}1$, T1 is ahead on PAWS ($+0.004$ and $+0.014$; significant for seed 2 only), and STS-B is mixed ($-0.024$ and $+0.016$, neither significant). The padding-aware secondary measure agrees (STS-B at $k{=}3$: 0.257 for the matched baseline against 0.147 and 0.116 for T1). In absolute terms all tokenizers are weak sentence-similarity models: word Jaccard alone reaches 0.565 on STS-B, and on PAWS every tokenizer scores 0.55--0.58 on the primary measure against 0.65 for the sentence-encoder ceiling.
+
+Against the matched baseline's second seed, STS-B at $k{=}2$--3 gives the same result ($k{=}3$: $-0.257$ and $-0.253$, CIs exclude 0). On PAWS at $k{=}2$--3 T1 is again behind by 0.010--0.014, significant only for seed 2 at $k{=}3$. At $k{=}1$, T1 seed 2's PAWS lead does not replicate ($+0.010$ [$-0.003$, $+0.024$]), and on STS-B T1 seed 42 is now significantly behind ($-0.059$ [$-0.121$, $-0.002$]). So the only coarse-level advantage of T1 in code similarity was not robust to the baseline's seed.
 
 \section{Training stability}\label{sec:stability}
 \paragraph{Attention-logit growth.} T1 diverged in bf16 under per-level STE. The expansion attention's query and key weights grew about 50-fold and its logits reached about $10^7$, the failure described by \citet{dehghani2023vit22b} and \citet{wortsman2024proxies}. RMS-normalizing queries and keys per head \citep{henry2020qknorm}, with the scale fixed so that the query--key term of the logits is bounded by $\sqrt{d_\text{head}}=8$ (the learned prior is added on top), removed the divergence.
@@ -306,7 +316,7 @@ Decoding a sentence from its own codes and giving similar sentences similar code
 \paragraph{A fallback that fails.} Applying STE only at the coarse levels, and NCM's global path below, left the deeper learned pools without a reconstruction gradient; their outputs collapsed to an RMS of 0.005. With learned pooling, every level needs its own gradient path.
 
 \section{Limitations}\label{sec:limits}
-The study uses one dataset of single-sentence summaries, a 48-token window and a reduced training budget; we do not show that attention moves toward meaning, only that it moves. No generator was trained, so whether a more decodable level~1 improves coarse-to-fine generation is untested; that is the main open question. The judge was scored against the matched baseline only at $k{=}1$: at $k{=}3$ two runs failed our 5\% missing-answer guard because the judge sometimes exhausted its token budget reasoning, and a retry ran out of API credit; we report these as not scored. The matched baseline has one seed. Measure A partly rewards fluent reconstructions, which is why we pair it with the judge, which is told to ignore fluency.
+The study uses one dataset of single-sentence summaries, a 48-token window and a reduced training budget; we do not show that attention moves toward meaning, only that it moves. No generator was trained, so whether a more decodable level~1 improves coarse-to-fine generation is untested; that is the main open question. Two earlier $k{=}3$ judge runs failed our 5\% missing-answer guard because the primary judge sometimes exhausted its token budget reasoning; the reported runs were made one at a time and passed it. The second judge was added after the primary results were known, and its API provider has scheduled it for retirement, so that check may not be repeatable there. Both judges are LLMs validated on STS-B sentence pairs, not on damaged reconstructions, and neither was checked against human judgments on this task. The matched baseline's second seed was trained after the primary results and is reported as a replication; the tables use seed 42 except where both are shown. Measure A partly rewards fluent reconstructions, which is why we pair it with the judge, which is told to ignore fluency.
 
 \section{Conclusion}
 Learned-query pooling makes the first four codes of a residual text tokenizer recover substantially more of a sentence than NCM's fixed pooling, including against an NCM with the same parameter count. It does not make similar sentences receive similar codes; a deeper NCM encoder does that better. For coarse-to-fine generation, the property that matters is likely decodability of the coarse levels, and that is the property pooling improves.

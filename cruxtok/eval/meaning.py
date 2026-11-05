@@ -24,7 +24,8 @@ EMBED_MODEL = "Qwen/Qwen3-Embedding-8B"
 # GLM-5.3 ignores enable_thinking on long prompts and reasoned for ~1000 tokens a call; reasoning_effort=low keeps it near 40.
 NO_THINKING = {"chat_template_kwargs": {"enable_thinking": False}, "reasoning_effort": "low"}
 # Spend guard from the token counts each response reports, at list prices (USD per 1M tokens, input / output).
-PRICES = {"zai-org/GLM-5.3": (1.4, 4.4)}
+# Qwen3-235B: Nscale lists $0.20 per 1M tokens; the output price is set high on purpose so the guard overcounts.
+PRICES = {"zai-org/GLM-5.3": (1.4, 4.4), "Qwen/Qwen3-235B-A22B-Instruct-2507": (0.2, 2.5)}
 MAX_COST = float(os.environ.get("JUDGE_MAX_COST", 4.5))
 _spent = [0.0]
 
@@ -58,9 +59,9 @@ def chat(model, prompt, max_tokens=1500, retries=4):
                 return "", {}
 
 
-def map_chat(model, prompts, workers=int(os.environ.get("JUDGE_WORKERS", 32))):
+def map_chat(model, prompts, max_tokens=1500, workers=int(os.environ.get("JUDGE_WORKERS", 32))):
     with ThreadPoolExecutor(workers) as pool:
-        return list(pool.map(lambda p: chat(model, p), prompts))
+        return list(pool.map(lambda p: chat(model, p, max_tokens), prompts))
 
 
 def embed(texts, batch_size=64, workers=8):
@@ -119,11 +120,17 @@ def validate_judge(model, n_consistency=200, seed=0):
             "consistency_answered": len(answered)}
 
 
-def pairwise(model, originals, recon_a, recon_b, n_boot=2000, seed=0):
-    """Win rate of a over b; a side wins only if both orders agree. Bootstrap CI over items."""
+def pairwise(model, originals, recon_a, recon_b, n_boot=2000, seed=0, retry_tokens=0):
+    """Win rate of a over b; a side wins only if both orders agree. Bootstrap CI over items.
+    retry_tokens > 0 re-asks only the unusable answers once, with that token limit."""
     items = list(zip(originals, recon_a, recon_b))
     prompts = [PAIR_PROMPT.format(o=o, a=a, b=b) for o, a, b in items] + [PAIR_PROMPT.format(o=o, a=b, b=a) for o, a, b in items]
     choices = [parse_choice(t) for t, _ in map_chat(model, prompts)]
+    missing = [i for i, c in enumerate(choices) if c is None]
+    if retry_tokens and missing:
+        for i, (t, _) in zip(missing, map_chat(model, [prompts[i] for i in missing], max_tokens=retry_tokens)):
+            choices[i] = parse_choice(t)
+        print(f"retried {len(missing)} unusable answers at {retry_tokens} tokens; {sum(choices[i] is None for i in missing)} still unusable", flush=True)
     fwd, rev = choices[:len(items)], choices[len(items):]
     valid = [(f, r) for f, r in zip(fwd, rev) if f is not None and r is not None]
     if len(valid) < 0.95 * len(items):
@@ -132,7 +139,8 @@ def pairwise(model, originals, recon_a, recon_b, n_boot=2000, seed=0):
     rng = np.random.default_rng(seed)
     boots = [score[rng.integers(0, len(score), len(score))].mean() for _ in range(n_boot)]
     return {"win_rate": float(score.mean()), "lo": float(np.percentile(boots, 2.5)), "hi": float(np.percentile(boots, 97.5)),
-            "a_wins": int((score == 1).sum()), "b_wins": int((score == 0).sum()), "ties": int((score == 0.5).sum()), "n_valid": len(valid)}
+            "a_wins": int((score == 1).sum()), "b_wins": int((score == 0).sum()), "ties": int((score == 0.5).sum()), "n_valid": len(valid),
+            "n_items": len(items), "retried": len(missing) if retry_tokens else 0}
 
 
 def main():
@@ -142,7 +150,8 @@ def main():
     ap.add_argument("--run", action="append", default=[], help="name=path to a run dir")
     ap.add_argument("--compare", action="append", default=[], help="a:b pairwise comparison")
     ap.add_argument("--k", action="append", default=[], help="judge only these levels, e.g. k=1; default k=1..3")
-    ap.add_argument("--n", type=int, default=1000)
+    ap.add_argument("--n", type=int, default=1000, help="reconstruct: sample size; judge: use the first n items")
+    ap.add_argument("--retry-tokens", type=int, default=0, help="judge: re-ask unusable answers once with this token limit; 0 = off")
     ap.add_argument("--out", default="runs/eval/meaning")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
@@ -194,12 +203,15 @@ def main():
     ks = a.k or ["k=1", "k=2", "k=3"]
     for spec in a.compare:
         x, y = spec.split(":")
-        results[spec] = {k: pairwise(a.model[0], data["originals"], data["runs"][x][k], data["runs"][y][k]) for k in ks}
+        n = a.n
+        results[spec] = {k: pairwise(a.model[0], data["originals"][:n], data["runs"][x][k][:n], data["runs"][y][k][:n],
+                                     retry_tokens=a.retry_tokens) for k in ks}
         for k, r in results[spec].items():
             print(f"{spec} {k}: win rate {r['win_rate']:.3f} [{r['lo']:.3f}, {r['hi']:.3f}] (wins {r['a_wins']}, losses {r['b_wins']}, ties {r['ties']})", flush=True)
         print(f"spent so far ${_spent[0]:.2f}", flush=True)
-        json.dump({"judge": a.model[0], "settings": NO_THINKING, "spent_usd": round(_spent[0], 3), "results": results},
-                  open(os.path.join(a.out, f"judge_{'_'.join(s.replace(':', '-') for s in a.compare)}{'_' + '_'.join(a.k) if a.k else ''}.json"), "w"), indent=1)
+        suffix = ('_' + '_'.join(a.k) if a.k else '') + (f'_n{n}' if n != 1000 else '')
+        json.dump({"judge": a.model[0], "settings": NO_THINKING, "retry_tokens": a.retry_tokens, "spent_usd": round(_spent[0], 3), "results": results},
+                  open(os.path.join(a.out, f"judge_{'_'.join(s.replace(':', '-') for s in a.compare)}{suffix}.json"), "w"), indent=1)
 
 
 if __name__ == "__main__":

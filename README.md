@@ -10,10 +10,10 @@ All runs are trained on XSum summaries for 30,000 updates at batch 256. "k" mean
 | | Params | Text accuracy, k=1 / k=3 / full | Embedding cosine to original, k=1 | LLM judge at k=1, T1 win rate |
 |---|---|---|---|---|
 | T0-cap (NCM, same budget) | 60.6M | 23.5 / 47.1 / 95.8 | 0.359 | 0.700 [0.678, 0.722] |
-| T0-cap, matched (5 encoder / 3 decoder blocks) | 73.1M | 19.3 / 45.6 / 97.8 | 0.342 | 0.740 [0.720, 0.760] (seed 42), 0.772 [0.753, 0.792] (seed 2) |
+| T0-cap, matched (5 encoder / 3 decoder blocks; seeds 42 / 2) | 73.1M | 19.3 / 45.6 / 97.8, 19.6 / 45.6 / 97.9 | 0.342 / 0.344 | 0.740 [0.720, 0.760] (CruxTok seed 42), 0.772 [0.753, 0.792] (CruxTok seed 2), against baseline seed 42 |
 | **T1, CruxTok** (seeds 42 / 2) | 73.2M | 23.5 / 60.1 / 98.8, 24.4 / 60.7 / 98.8 | 0.449 / 0.455 | |
 
-- **Level 1 keeps the gist.** At k=1, CruxTok's reconstructions are about 0.1 closer to the original in embedding space than both baselines, on both seeds. A pairwise LLM judge, validated on STS-B (Spearman 0.90), prefers them in 70-77% of comparisons.
+- **Level 1 keeps the gist.** At k=1, CruxTok's reconstructions are about 0.1 closer to the original in embedding space than both baselines, on both seeds. A pairwise LLM judge, validated on STS-B (Spearman 0.90), gives CruxTok win rates of 0.70-0.77 (ties count half). A second validated judge agrees, with smaller margins (0.58-0.61). Both judges find the runs about even at k=2 and CruxTok ahead of the matched baseline at k=3. All of this holds against a second seed of the matched baseline.
 - **The queries choose tokens.** On text tokens, 37-53% of pooling attention moves away from NCM's starting windows, and it differs between inputs.
 - **The limit.** CruxTok does not make similar sentences get similar codes. On STS-B at k=3, code similarity reaches Spearman 0.28 for the matched baseline against 0.02-0.03 for CruxTok.
 
@@ -37,7 +37,7 @@ codes = tok.encode("West Ham striker Andy Carroll is facing up to six weeks out 
 print(tok.decode(codes, upto_level=1))               # from the first 4 codes only
 print(tok.decode(codes))                             # all levels
 ```
-Trained tokenizers (CruxTok seeds 42 and 2, and the three NCM baselines): [huggingface.co/TimothDevA/cruxtok](https://huggingface.co/TimothDevA/cruxtok). `from_pretrained` also accepts a local run directory.
+Trained tokenizers (CruxTok seeds 42 and 2, and the four NCM baselines): [huggingface.co/TimothDevA/cruxtok](https://huggingface.co/TimothDevA/cruxtok). `from_pretrained` also accepts a local run directory.
 
 ## Reproduce
 Training (one GPU each; the reported runs used bf16, except T0-cap seed 42 in fp16):
@@ -46,6 +46,7 @@ python -m cruxtok.cli.train_tokenizer --config configs/xsum/t1.yaml runtime.prec
 python -m cruxtok.cli.train_tokenizer --config configs/xsum/t1.yaml runtime.precision=bf16 seed=2 run_name=xsum_t1_s2
 python -m cruxtok.cli.train_tokenizer --config configs/xsum/t0cap.yaml runtime.precision=fp16 run_name=xsum_t0cap
 python -m cruxtok.cli.train_tokenizer --config configs/xsum/t0cap_matched.yaml runtime.precision=bf16
+python -m cruxtok.cli.train_tokenizer --config configs/xsum/t0cap_matched.yaml runtime.precision=bf16 seed=2 run_name=xsum_t0cap_matched_s2
 ```
 Overrides use dotted keys. `--benchmark 30` measures speed and memory, and `--resume_from <dir>` continues a run.
 
@@ -61,7 +62,7 @@ python -m cruxtok.eval.meaning embed --compare t1:t0cap
 python -m cruxtok.eval.meaning validate --model zai-org/GLM-5.3
 python -m cruxtok.eval.meaning judge --model zai-org/GLM-5.3 --compare t1:t0cap --k k=1
 ```
-`JUDGE_MAX_COST` caps spend per process at list prices.
+`JUDGE_MAX_COST` caps spend per process at list prices. `--retry-tokens 4000` asks unusable answers once more with a larger token limit, as in the reported k=2-3 runs against the matched baseline.
 
 ## Attribution
 Built on [Next-Concept Modeling](https://github.com/HazyResearch/ncm) (Kumbong et al., arXiv:2610.14162, MIT), included unmodified as a submodule at `third_party/ncm`. Code adapted from it keeps its MIT header and an attribution line.
