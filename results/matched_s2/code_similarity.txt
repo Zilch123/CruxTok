@@ -1,0 +1,46 @@
+VQVAE, Total parameter count: 73.06M
+VQVAE, Non embedding parameter count: 53.72M
+VQVAE, Total parameter count: 73.06M
+VQVAE, Non embedding parameter count: 53.72M
+
+paws (8000 pairs, AUC)
+  jaccard                  k=all 0.4953
+  tfidf                    k=all 0.4840
+  random                   k=all 0.5053
+  t0cap_matched_s2         k=1 0.5507  k=2 0.5732  k=3 0.5763
+  t0cap_matched_s2/zhat    k=1 0.5430  k=2 0.5838  k=3 0.5837
+  t0cap_matched            k=1 0.5473  k=2 0.5706  k=3 0.5791
+  t0cap_matched/zhat       k=1 0.5345  k=2 0.5917  k=3 0.5926
+  t1                       k=1 0.5509  k=2 0.5630  k=3 0.5664
+  t1/zhat                  k=1 0.5480  k=2 0.5610  k=3 0.5706
+  t1_s2                    k=1 0.5608  k=2 0.5622  k=3 0.5627
+  t1_s2/zhat               k=1 0.5561  k=2 0.5589  k=3 0.5630
+  t1:t0cap_matched_s2      k=1 +0.0002 [-0.0131, +0.0140]  k=2 -0.0102 [-0.0212, +0.0017]  k=3 -0.0099 [-0.0207, +0.0017]
+  t1:t0cap_matched_s2/zhat k=1 +0.0051 [-0.0097, +0.0207]  k=2 -0.0228 [-0.0362, -0.0086]  k=3 -0.0132 [-0.0269, +0.0003]
+  t1_s2:t0cap_matched_s2   k=1 +0.0101 [-0.0029, +0.0239]  k=2 -0.0110 [-0.0222, +0.0004]  k=3 -0.0137 [-0.0249, -0.0021]
+  t1_s2:t0cap_matched_s2/zhat k=1 +0.0132 [-0.0018, +0.0286]  k=2 -0.0249 [-0.0393, -0.0104]  k=3 -0.0208 [-0.0346, -0.0067]
+  t0cap_matched_s2:t0cap_matched k=1 +0.0034 [-0.0073, +0.0139]  k=2 +0.0026 [-0.0083, +0.0129]  k=3 -0.0028 [-0.0132, +0.0077]
+  t0cap_matched_s2:t0cap_matched/zhat k=1 +0.0085 [-0.0067, +0.0227]  k=2 -0.0079 [-0.0209, +0.0055]  k=3 -0.0089 [-0.0206, +0.0032]
+VQVAE, Total parameter count: 73.06M
+VQVAE, Non embedding parameter count: 53.72M
+VQVAE, Total parameter count: 73.06M
+VQVAE, Non embedding parameter count: 53.72M
+
+stsb (1379 pairs, Spearman)
+  jaccard                  k=all 0.5649
+  tfidf                    k=all 0.6932
+  random                   k=all 0.0001
+  t0cap_matched_s2         k=1 0.0257  k=2 0.0876  k=3 0.2797
+  t0cap_matched_s2/zhat    k=1 0.0195  k=2 0.1494  k=3 0.2684
+  t0cap_matched            k=1 -0.0094  k=2 0.1015  k=3 0.2816
+  t0cap_matched/zhat       k=1 0.0498  k=2 0.1758  k=3 0.2569
+  t1                       k=1 -0.0334  k=2 -0.0186  k=3 0.0224
+  t1/zhat                  k=1 0.0550  k=2 0.1141  k=3 0.1467
+  t1_s2                    k=1 0.0070  k=2 -0.0071  k=3 0.0271
+  t1_s2/zhat               k=1 0.0788  k=2 0.0885  k=3 0.1160
+  t1:t0cap_matched_s2      k=1 -0.0591 [-0.1209, -0.0019]  k=2 -0.1062 [-0.1579, -0.0578]  k=3 -0.2573 [-0.3103, -0.2081]
+  t1:t0cap_matched_s2/zhat k=1 +0.0356 [-0.0337, +0.1030]  k=2 -0.0353 [-0.1003, +0.0306]  k=3 -0.1217 [-0.1768, -0.0645]
+  t1_s2:t0cap_matched_s2   k=1 -0.0187 [-0.0747, +0.0395]  k=2 -0.0948 [-0.1454, -0.0472]  k=3 -0.2526 [-0.3058, -0.2018]
+  t1_s2:t0cap_matched_s2/zhat k=1 +0.0593 [-0.0140, +0.1314]  k=2 -0.0609 [-0.1288, +0.0059]  k=3 -0.1523 [-0.2150, -0.0943]
+  t0cap_matched_s2:t0cap_matched k=1 +0.0351 [-0.0111, +0.0800]  k=2 -0.0138 [-0.0516, +0.0225]  k=3 -0.0019 [-0.0377, +0.0341]
+  t0cap_matched_s2:t0cap_matched/zhat k=1 -0.0303 [-0.0962, +0.0294]  k=2 -0.0263 [-0.0792, +0.0241]  k=3 +0.0115 [-0.0329, +0.0561]
